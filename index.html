@@ -1,0 +1,2103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="Logos/CK_Logo.png">
+<title>Chicken Kitchen — Aprobacion de Facturas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --ck-orange: #FF6B2B;
+  --ck-orange-dark: #E55A1B;
+  --ck-orange-light: #FFF3ED;
+  --ck-dark: #1A1A2E;
+  --ck-dark-mid: #2D2D44;
+  --ck-gray-100: #F7F8FA;
+  --ck-gray-200: #ECEDF0;
+  --ck-gray-300: #D1D3D8;
+  --ck-gray-500: #6B7280;
+  --ck-gray-700: #374151;
+  --ck-white: #FFFFFF;
+  --ck-green: #D1FAE5;
+  --ck-green-border: #6EE7B7;
+  --ck-green-text: #065F46;
+  --ck-red: #FEE2E2;
+  --ck-red-border: #FCA5A5;
+  --ck-red-text: #991B1B;
+  --ck-yellow: #FEF3C7;
+  --ck-yellow-border: #FCD34D;
+  --ck-yellow-text: #92400E;
+  --ck-blue: #DBEAFE;
+  --ck-blue-border: #93C5FD;
+  --ck-blue-text: #1E40AF;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,.12);
+  --radius: 10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--ck-gray-100);color:var(--ck-gray-700);min-height:100vh;line-height:1.5}
+
+/* ---- Topbar ---- */
+.topbar{background:var(--ck-dark);color:var(--ck-white);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:60px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-md)}
+.topbar .brand{display:flex;align-items:center;gap:10px}
+.topbar .subtitle{font-size:12px;color:var(--ck-gray-300);letter-spacing:.5px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.module-tabs{display:none;gap:4px}
+.module-tabs.active{display:flex}
+.tab-btn{background:transparent;border:1px solid var(--ck-gray-500);color:var(--ck-gray-300);padding:6px 18px;border-radius:6px;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;transition:.2s}
+.tab-btn:hover{border-color:var(--ck-orange);color:var(--ck-orange)}
+.tab-btn.active{background:var(--ck-orange);border-color:var(--ck-orange);color:var(--ck-white)}
+#headerUserBadge{display:none;background:var(--ck-dark-mid);padding:6px 14px;border-radius:20px;font-size:13px;color:var(--ck-gray-300)}
+#headerUserBadge strong{color:var(--ck-orange)}
+#btnLogout{display:none;background:transparent;border:1px solid var(--ck-gray-500);color:var(--ck-gray-300);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;transition:.2s}
+#btnLogout:hover{border-color:var(--ck-red-border);color:var(--ck-red-border)}
+/* ---- Pivot Review ---- */
+.review-toolbar{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.review-toolbar label{font-size:12px;font-weight:600;color:var(--ck-gray-500);text-transform:uppercase;letter-spacing:.5px}
+.group-toggle{display:flex;gap:2px;background:var(--ck-gray-200);border-radius:6px;padding:2px}
+.group-toggle-btn{background:transparent;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;color:var(--ck-gray-500);transition:.2s}
+.group-toggle-btn:hover{color:var(--ck-dark)}
+.group-toggle-btn.active{background:var(--ck-orange);color:var(--ck-white)}
+.pivot-group{margin-bottom:8px;border:1px solid var(--ck-gray-200);border-radius:var(--radius);overflow:hidden}
+.pivot-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--ck-gray-100);cursor:pointer;user-select:none;transition:background .15s}
+.pivot-header:hover{background:var(--ck-gray-200)}
+.pivot-header .pivot-arrow{transition:transform .2s;font-size:12px;color:var(--ck-gray-500)}
+.pivot-header.open .pivot-arrow{transform:rotate(90deg)}
+.pivot-header .pivot-title{font-weight:600;font-size:14px;color:var(--ck-dark)}
+.pivot-header .pivot-meta{font-size:12px;color:var(--ck-gray-500);display:flex;gap:12px;align-items:center}
+.pivot-header .pivot-meta strong{color:var(--ck-orange);font-size:14px}
+.pivot-sub{margin:0 12px 8px}
+.pivot-sub-header{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:var(--ck-orange-light);border-radius:6px;cursor:pointer;margin-top:6px;font-size:13px;font-weight:500;color:var(--ck-dark)}
+.pivot-sub-header:hover{background:#FFE8D9}
+.pivot-sub-header .pivot-arrow{transition:transform .2s;font-size:11px;color:var(--ck-gray-500)}
+.pivot-sub-header.open .pivot-arrow{transform:rotate(90deg)}
+.pivot-detail{padding:4px 0 4px 12px}
+.pivot-detail table{width:100%;font-size:12px;border-collapse:collapse}
+.pivot-detail th{background:var(--ck-dark-mid);color:var(--ck-white);padding:6px 8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+.pivot-detail td{padding:6px 8px;border-bottom:1px solid var(--ck-gray-200)}
+.pivot-detail tr:last-child td{border-bottom:none}
+.pivot-subtotal{text-align:right;padding:6px 12px;font-size:12px;color:var(--ck-gray-500);font-weight:600}
+.pivot-grand-total{background:var(--ck-dark);color:var(--ck-white);padding:14px 16px;border-radius:var(--radius);margin-top:12px;display:flex;justify-content:space-between;align-items:center;font-size:15px}
+.pivot-grand-total strong{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px}
+.review-actions{display:flex;gap:6px}
+.review-actions button{font-size:12px;padding:4px 12px}
+.pay-confirm-box{background:var(--ck-orange-light);border:2px solid var(--ck-orange);border-radius:var(--radius);padding:20px;margin-top:16px;text-align:center}
+.pay-confirm-box p{font-size:14px;margin-bottom:14px;color:var(--ck-dark)}
+.pay-confirm-box .pay-actions{display:flex;gap:10px;justify-content:center}
+.pay-result{margin-top:10px;padding:8px 14px;border-radius:6px;font-size:13px}
+.pay-result.ok{background:var(--ck-green);color:var(--ck-green-text);border:1px solid var(--ck-green-border)}
+.pay-result.err{background:var(--ck-red);color:var(--ck-red-text);border:1px solid var(--ck-red-border)}
+
+.lang-switch{display:flex;gap:2px;background:var(--ck-dark-mid);border-radius:6px;padding:2px}
+.lang-btn{background:transparent;border:none;color:var(--ck-gray-500);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:.2s}
+.lang-btn:hover{color:var(--ck-white)}
+.lang-btn.active{background:var(--ck-orange);color:var(--ck-white)}
+
+/* ---- Screens ---- */
+.screen{display:none;padding:32px 28px 60px;max-width:1440px;margin:0 auto}
+.screen.active{display:block}
+
+/* ---- Login Screen ---- */
+#screenLogin{text-align:center}
+.login-header{margin-bottom:32px}
+.login-header h2{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1px;color:var(--ck-dark)}
+.login-header p{color:var(--ck-gray-500);margin-top:4px;font-size:15px}
+.conn-status{background:var(--ck-white);border-radius:var(--radius);padding:14px 20px;margin-bottom:24px;box-shadow:var(--shadow-sm);border-left:4px solid var(--ck-gray-300);font-size:14px;text-align:left}
+.conn-status.ok{border-left-color:var(--ck-green-text);color:var(--ck-green-text)}
+.conn-status.err{border-left-color:var(--ck-red-text);color:var(--ck-red-text)}
+.conn-status.loading{border-left-color:var(--ck-orange);color:var(--ck-gray-500)}
+
+.user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;max-width:960px;margin:0 auto}
+.user-card{background:var(--ck-white);border:2px solid var(--ck-gray-200);border-radius:var(--radius);padding:18px 14px;cursor:pointer;transition:all .2s;text-align:center}
+.user-card:hover{border-color:var(--ck-orange);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.user-card.selected{border-color:var(--ck-orange);background:var(--ck-orange-light)}
+.user-card .avatar{width:48px;height:48px;border-radius:50%;background:var(--ck-orange);color:var(--ck-white);display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;font-family:'Bebas Neue',sans-serif;margin-bottom:8px}
+.user-card .user-name{font-weight:600;font-size:14px;color:var(--ck-dark)}
+.user-card .user-email{font-size:11px;color:var(--ck-gray-500);margin-top:2px;word-break:break-all}
+
+/* Password section */
+.password-section{display:none;max-width:420px;margin:28px auto 0;background:var(--ck-white);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow-md);border:2px solid var(--ck-orange);text-align:left}
+.password-section.active{display:block}
+.password-section h3{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--ck-dark);margin-bottom:4px;letter-spacing:.5px}
+.password-section .pw-user{font-size:13px;color:var(--ck-gray-500);margin-bottom:16px}
+.password-section label{font-size:12px;font-weight:600;color:var(--ck-gray-500);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+.pw-input-wrap{position:relative}
+.pw-input-wrap input{width:100%;border:1px solid var(--ck-gray-300);border-radius:6px;padding:10px 42px 10px 14px;font-size:14px;font-family:inherit}
+.pw-input-wrap input:focus{outline:none;border-color:var(--ck-orange);box-shadow:0 0 0 3px rgba(255,107,43,.15)}
+.pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--ck-gray-500);padding:4px;line-height:1}
+.pw-toggle:hover{color:var(--ck-orange)}
+.pw-error{color:var(--ck-red-text);font-size:13px;margin-top:8px;display:none}
+.pw-error.active{display:block}
+#btnLogin{margin-top:16px;width:100%;background:var(--ck-orange);color:var(--ck-white);border:none;padding:12px;font-size:15px;font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;border-radius:8px;cursor:pointer;transition:.2s}
+#btnLogin:hover{background:var(--ck-orange-dark)}
+#btnLogin:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---- Loading Overlay ---- */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,.7);z-index:200;align-items:center;justify-content:center}
+.loading-overlay.active{display:flex}
+.loading-box{background:var(--ck-white);border-radius:16px;padding:40px 48px;text-align:center;box-shadow:var(--shadow-lg);max-width:440px;width:90%}
+.spinner{width:48px;height:48px;border:4px solid var(--ck-gray-200);border-top-color:var(--ck-orange);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-box h3{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--ck-dark);letter-spacing:1px}
+#loadingMessage{margin-top:8px;font-size:14px;color:var(--ck-gray-500)}
+.progress-bar-wrap{margin-top:16px;background:var(--ck-gray-200);border-radius:6px;height:8px;overflow:hidden}
+.progress-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--ck-orange),var(--ck-orange-dark));border-radius:6px;transition:width .4s ease}
+
+/* ---- Dashboard ---- */
+.dash-summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.stat-card{background:var(--ck-white);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow-sm);border-left:4px solid var(--ck-orange);min-width:160px;flex:1}
+.stat-card .stat-label{font-size:11px;color:var(--ck-gray-500);text-transform:uppercase;letter-spacing:.5px}
+.stat-card .stat-value{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--ck-dark);margin-top:2px}
+.stat-card.red{border-left-color:var(--ck-red-text)}
+.stat-card.yellow{border-left-color:var(--ck-yellow-text)}
+.stat-card.green{border-left-color:var(--ck-green-text)}
+.stat-card.blue{border-left-color:var(--ck-blue-text)}
+
+.filters-bar{background:var(--ck-white);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;box-shadow:var(--shadow-sm);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filters-bar label{font-size:11px;font-weight:600;color:var(--ck-gray-500);text-transform:uppercase;letter-spacing:.5px}
+.filter-group{display:flex;flex-direction:column;gap:3px}
+.filter-group select,.filter-group input{border:1px solid var(--ck-gray-300);border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit;background:var(--ck-white);color:var(--ck-dark);min-width:150px}
+.filter-group select:focus,.filter-group input:focus{outline:none;border-color:var(--ck-orange);box-shadow:0 0 0 2px rgba(255,107,43,.15)}
+#btnClearFilters{align-self:flex-end;background:transparent;border:1px solid var(--ck-gray-300);color:var(--ck-gray-500);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;transition:.2s}
+#btnClearFilters:hover{border-color:var(--ck-orange);color:var(--ck-orange)}
+
+/* ---- Table ---- */
+.table-wrap{background:var(--ck-white);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow-x:auto;position:relative}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{position:sticky;top:0;z-index:10}
+thead th{background:var(--ck-dark);color:var(--ck-white);padding:8px 7px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{background:var(--ck-dark-mid)}
+thead th .sort-icon{margin-left:3px;opacity:.4;font-size:9px}
+thead th.sorted .sort-icon{opacity:1;color:var(--ck-orange)}
+tbody tr{border-bottom:1px solid var(--ck-gray-200);transition:background .15s}
+tbody tr:nth-child(even){background:var(--ck-gray-100)}
+tbody tr:hover{background:#FFF8F4}
+tbody td{padding:6px 7px;vertical-align:middle;font-size:12px}
+td.amount{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+tr.row-overdue{background:var(--ck-red)!important}
+tr.row-overdue td{color:var(--ck-red-text)}
+tr.row-soon{background:var(--ck-yellow)!important}
+tr.row-soon td{color:var(--ck-yellow-text)}
+tr.row-checked{background:var(--ck-green)!important}
+tr.row-checked td{color:var(--ck-green-text)}
+/* Sticky checkbox column */
+th.col-check,td.col-check{position:sticky;right:0;z-index:5;text-align:center;background:inherit;box-shadow:-3px 0 6px rgba(0,0,0,.06)}
+thead th.col-check{background:var(--ck-dark);z-index:11}
+tr:nth-child(even) td.col-check{background:var(--ck-gray-100)}
+tr:hover td.col-check{background:#FFF8F4}
+tr.row-overdue td.col-check{background:var(--ck-red)}
+tr.row-soon td.col-check{background:var(--ck-yellow)}
+tr.row-checked td.col-check{background:var(--ck-green)}
+.ck-checkbox{width:20px;height:20px;accent-color:var(--ck-orange);cursor:pointer}
+td input[type="date"]{border:1px solid var(--ck-gray-300);border-radius:4px;padding:3px 4px;font-family:inherit;font-size:11px;background:transparent;width:110px}
+td input[type="date"]:focus{outline:none;border-color:var(--ck-orange)}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap}
+.tag.overdue{background:var(--ck-red);color:var(--ck-red-text);border:1px solid var(--ck-red-border)}
+.tag.soon{background:var(--ck-yellow);color:var(--ck-yellow-text);border:1px solid var(--ck-yellow-border)}
+.tag.normal{background:var(--ck-green);color:var(--ck-green-text);border:1px solid var(--ck-green-border)}
+.tag.tag-paid{background:var(--ck-green);color:var(--ck-green-text);border:1px solid var(--ck-green-border)}
+.tag.tag-unpaid{background:var(--ck-red);color:var(--ck-red-text);border:1px solid var(--ck-red-border)}
+.tag.tag-partial{background:var(--ck-yellow);color:var(--ck-yellow-text);border:1px solid var(--ck-yellow-border)}
+.tag.tag-approved{background:var(--ck-green);color:var(--ck-green-text);border:1px solid var(--ck-green-border)}
+.tag.tag-pending{background:var(--ck-yellow);color:var(--ck-yellow-text);border:1px solid var(--ck-yellow-border)}
+.tag.tag-rejected{background:var(--ck-red);color:var(--ck-red-text);border:1px solid var(--ck-red-border)}
+.tag.tag-unassigned{background:var(--ck-gray-200);color:var(--ck-gray-500);border:1px solid var(--ck-gray-300)}
+.tag.tag-method-check{background:#EDE9FE;color:#5B21B6;border:1px solid #C4B5FD}
+.tag.tag-method-ach{background:var(--ck-blue);color:var(--ck-blue-text);border:1px solid var(--ck-blue-border)}
+.tag.tag-method-paypal{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}
+.tag.tag-method-direct{background:var(--ck-green);color:var(--ck-green-text);border:1px solid var(--ck-green-border)}
+.tag.tag-method-card{background:#FCE7F3;color:#9D174D;border:1px solid #F9A8D4}
+.tag.tag-method-wire{background:#FFF7ED;color:#C2410C;border:1px solid #FDBA74}
+
+.no-results{text-align:center;padding:48px 20px;color:var(--ck-gray-500)}
+.no-results .icon{font-size:48px;margin-bottom:12px}
+.no-results h3{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--ck-dark)}
+
+/* ---- Bottom Bar ---- */
+.bottom-bar{position:sticky;bottom:0;background:var(--ck-white);border-top:2px solid var(--ck-gray-200);padding:12px 28px;display:none;align-items:center;justify-content:space-between;box-shadow:0 -4px 12px rgba(0,0,0,.06);z-index:50}
+.bottom-bar.active{display:flex}
+.bottom-bar .sel-info{font-size:14px;color:var(--ck-gray-500)}
+.bottom-bar .sel-info strong{color:var(--ck-dark)}
+.bottom-bar .actions{display:flex;gap:10px}
+.btn{border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--ck-orange);color:var(--ck-white)}
+.btn-primary:hover{background:var(--ck-orange-dark)}
+.btn-secondary{background:var(--ck-gray-200);color:var(--ck-dark)}
+.btn-secondary:hover{background:var(--ck-gray-300)}
+.btn-blue{background:var(--ck-blue-text);color:var(--ck-white)}
+.btn-blue:hover{background:#1E3A8A}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---- Modal ---- */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(26,26,46,.6);z-index:300;align-items:center;justify-content:center}
+.modal-backdrop.active{display:flex}
+.modal{background:var(--ck-white);border-radius:16px;width:90%;max-width:960px;max-height:85vh;overflow:auto;box-shadow:var(--shadow-lg)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--ck-gray-200);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--ck-white);border-radius:16px 16px 0 0}
+.modal-header h3{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--ck-dark);letter-spacing:1px}
+.modal-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--ck-gray-200);cursor:pointer;font-size:18px;color:var(--ck-gray-500);display:flex;align-items:center;justify-content:center;transition:.2s}
+.modal-close:hover{background:var(--ck-red);color:var(--ck-red-text)}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--ck-gray-200);display:flex;gap:10px;justify-content:flex-end}
+.modal table{font-size:12px}
+.modal thead th{background:var(--ck-dark-mid);padding:8px 10px;font-size:11px}
+.modal tbody td{padding:8px 10px}
+.modal .total-row{font-weight:700;background:var(--ck-orange-light)!important}
+.modal .total-row td{color:var(--ck-dark)}
+
+.error-banner{display:none;background:var(--ck-red);border:1px solid var(--ck-red-border);color:var(--ck-red-text);padding:14px 20px;border-radius:var(--radius);margin-bottom:18px;font-size:14px}
+.error-banner.active{display:block}
+
+@media(max-width:768px){
+  .topbar{padding:0 14px;gap:8px}
+  .topbar h1{font-size:16px}
+  .module-tabs{display:none!important}
+  .screen{padding:18px 14px 80px}
+  .dash-summary{flex-direction:column}
+  .filters-bar{flex-direction:column}
+  .filter-group select,.filter-group input{min-width:100%}
+  .bottom-bar{flex-direction:column;gap:10px;padding:10px 14px}
+  .bottom-bar .actions{width:100%}
+  .bottom-bar .btn{flex:1;justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<!-- ========== TOPBAR ========== -->
+<nav class="topbar">
+  <div class="brand">
+    <img src="Logos/cropped-Logo.png" alt="Chicken Kitchen" style="height:40px;">
+    <div class="subtitle" style="margin-left:4px;">Gestion de Facturas &bull; BILL.com</div>
+  </div>
+  <div class="module-tabs" id="moduleTabs">
+    <button class="tab-btn active" data-mod="approval" onclick="switchModule('approval')">Aprobacion</button>
+    <button class="tab-btn" data-mod="payment" onclick="switchModule('payment')">Pagos</button>
+    <button class="tab-btn" data-mod="history" onclick="switchModule('history')">Historial</button>
+  </div>
+  <div class="topbar-right">
+    <div class="lang-switch">
+      <button class="lang-btn active" data-lang="es" onclick="setLanguage('es')">ES</button>
+      <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
+    </div>
+    <span id="headerUserBadge"></span>
+    <button id="btnLogout" onclick="logout()">Cerrar Sesion</button>
+  </div>
+</nav>
+
+<!-- ========== SCREEN: LOGIN ========== -->
+<div id="screenLogin" class="screen active">
+  <div class="conn-status loading" id="connStatus">Conectando con BILL.com...</div>
+
+  <div class="login-header">
+    <img src="Logos/CK_Logo.png" alt="Chicken Kitchen" style="width:120px;margin-bottom:16px;">
+    <h2>Iniciar Sesion</h2>
+    <p>Selecciona tu usuario e ingresa tu contrasena de BILL.com</p>
+  </div>
+
+  <div id="errorBannerLogin" class="error-banner"></div>
+
+  <div id="userGrid" class="user-grid"></div>
+
+  <div class="password-section" id="passwordSection">
+    <h3 id="pwTitle">Ingresa tu contrasena</h3>
+    <div class="pw-user" id="pwUser"></div>
+    <label for="pwInput">Contrasena BILL.com</label>
+    <div class="pw-input-wrap">
+      <input type="password" id="pwInput" placeholder="Tu contrasena de BILL.com" onkeydown="if(event.key==='Enter')doLogin()">
+      <button type="button" class="pw-toggle" id="pwToggle" onclick="togglePassword()" title="Ver contrasena">&#128065;</button>
+    </div>
+    <div class="pw-error" id="pwError"></div>
+    <button id="btnLogin" onclick="doLogin()">INGRESAR</button>
+  </div>
+</div>
+
+<!-- ========== SCREEN: DASHBOARD ========== -->
+<div id="screenDash" class="screen">
+  <div id="errorBannerDash" class="error-banner"></div>
+
+  <div class="dash-summary" id="dashSummary"></div>
+
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label>Tienda</label>
+      <select id="filterStore" onchange="applyFilters()"><option value="">Todas</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Proveedor</label>
+      <select id="filterVendor" onchange="applyFilters()"><option value="">Todos</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Fecha Desde</label>
+      <input type="date" id="filterDateFrom" onchange="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Fecha Hasta</label>
+      <input type="date" id="filterDateTo" onchange="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Vencimiento</label>
+      <select id="filterDueStatus" onchange="applyFilters()">
+        <option value="">Todos</option>
+        <option value="overdue">Vencidas</option>
+        <option value="soon">Proximas (7 dias)</option>
+        <option value="normal">Al Dia</option>
+      </select>
+    </div>
+    <div class="filter-group" id="filterPayStatusGroup" style="display:none">
+      <label>Estado</label>
+      <select id="filterPayStatus" onchange="applyFilters()">
+        <option value="">Todos</option>
+        <option value="0">Pagadas</option>
+        <option value="1">Sin Pagar</option>
+        <option value="2">Pago Parcial</option>
+      </select>
+    </div>
+    <button id="btnSearchHistory" style="display:none;align-self:flex-end;background:var(--ck-orange);color:var(--ck-white);border:none;padding:6px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px" onclick="searchHistory()">BUSCAR</button>
+    <button id="btnClearFilters" onclick="clearFilters()">Limpiar</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="noResults" class="no-results" style="display:none">
+      <div class="icon">&#128196;</div>
+      <h3>Sin Facturas</h3>
+      <p>No se encontraron facturas con los filtros actuales</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== BOTTOM BAR ========== -->
+<div id="bottomBar" class="bottom-bar">
+  <div class="sel-info">
+    <strong id="selCount">0</strong> <span id="selLabel">seleccionadas</span> &bull; <span id="totalLabel">Total:</span> <strong id="selTotal">$0.00</strong>
+  </div>
+  <div class="actions">
+    <button class="btn btn-secondary" onclick="exportExcel(false)">&#128196; Exportar Todo</button>
+    <button class="btn btn-primary" id="btnAction" onclick="showSummaryModal()">&#9989; Guardar Aprobaciones</button>
+  </div>
+</div>
+
+<!-- ========== LOADING ========== -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-box">
+    <img src="Logos/CK_Logo.png" alt="Chicken Kitchen" style="width:80px;margin-bottom:12px;">
+    <div class="spinner"></div>
+    <h3 id="loadingTitle">Cargando</h3>
+    <p id="loadingMessage">Iniciando...</p>
+    <div class="progress-bar-wrap">
+      <div id="progressBar" class="progress-bar-fill"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL ========== -->
+<div id="summaryModal" class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Resumen</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+      <button class="btn btn-primary" id="modalExportBtn" onclick="exportExcel(true)">&#128196; Exportar a Excel</button>
+      <button class="btn btn-blue" id="modalPayBtn" style="display:none" onclick="confirmAndPay()">&#128176; Confirmar y Pagar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===========================================================
+   CHICKEN KITCHEN — BILL.com Gestion de Facturas
+   =========================================================== */
+
+// ---- Config ----
+const DEV_KEY = '01AOFCACHDJETJOO6022';
+const BOOTSTRAP_USER = 'monica@chickenkitchen.com';
+const BOOTSTRAP_PASS = 'CKac12345678*';
+
+// ---- Credentials (set after login) ----
+let sessionUser = { email: '', password: '', name: '' };
+
+// ---- State ----
+let allOrgs = [];
+let allUsersFirstOrg = [];
+let pendingBills = [];    // approvalStatus=1, isActive=1
+let approvedBills = [];   // approvalStatus=3, isActive=1, paymentStatus!=0
+let currentModule = 'approval'; // 'approval' | 'payment'
+let filteredBills = [];
+let sortState = { col: 'dueDate', asc: true };
+let canPayAnyOrg = false;
+let historyBills = [];
+let userNameMap = {}; // global userId -> name, built during load
+let currentLang = localStorage.getItem('ck_lang') || 'es';
+
+// ---- i18n ----
+const LANG = {
+  es: {
+    subtitle:'Gestion de Facturas',tabApproval:'Aprobacion',tabPayment:'Pagos',logout:'Cerrar Sesion',userBadge:'Usuario:',
+    connecting:'Conectando con BILL.com...',connOk:'Conectado a BILL.com — {0} tiendas detectadas',
+    connErr:'Error de conexion. Asegurate de ejecutar <code>node server.js</code> y abrir <a href="http://localhost:3000">http://localhost:3000</a>. Error: ',
+    loginTitle:'Iniciar Sesion',loginSubtitle:'Selecciona tu usuario e ingresa tu contrasena de BILL.com',
+    pwSection:'Ingresa tu contrasena',pwLabel:'Contrasena BILL.com',pwPlaceholder:'Tu contrasena de BILL.com',
+    pwShow:'Ver contrasena',pwHide:'Ocultar contrasena',btnLogin:'INGRESAR',btnVerifying:'VERIFICANDO...',
+    errNoPw:'Ingresa tu contrasena.',errLoginFail:'Contrasena incorrecta o sin acceso. Error: ',
+    noUsers:'No se encontraron usuarios activos.',noName:'Sin nombre',hello:'Hola, ',
+    loadTitle:'Cargando Facturas',loadConn:'Conectando a las tiendas...',loadStore:'Tienda {0} de {1}: {2}',loadApprovers:'Tienda {0}/{1}: verificando aprobadores...',
+    fStore:'Tienda',fVendor:'Proveedor',fDateFrom:'Fecha Desde',fDateTo:'Fecha Hasta',fDueStatus:'Vencimiento',
+    fAll:'Todas',fAllV:'Todos',fOverdue:'Vencidas',fSoon:'Proximas (7 dias)',fNormal:'Al Dia',fClear:'Limpiar',
+    thStore:'Tienda',thVendor:'Proveedor',thInvNum:'Num Factura',thInvDate:'Fecha Factura',thDueDate:'Fecha Vencimiento',
+    thAmount:'Monto',thDue:'Vencimiento',thPaySt:'Estado Pago',thAppSt:'Estado Aprobacion',thPayMethod:'Metodo de Pago',
+    thSugDate:'Fecha Pago Sugerida',thApprove:'Aprobar',thPay:'Pagar',
+    tagOverdue:'VENCIDA',tagSoon:'PROXIMA',tagNormal:'AL DIA',
+    sumPending:'Pendientes de Aprobacion',sumApproved:'Aprobadas sin Pagar',sumTotal:'Monto Total',
+    sumOverdue:'Vencidas',sumSoon:'Proximas (7 dias)',sumSelected:'Seleccionadas',
+    selected:'seleccionadas',total:'Total:',
+    btnExportAll:'Exportar Todo',btnSaveApp:'Guardar Aprobaciones',btnConfirmPay:'Confirmar Pagos',
+    btnExportApp:'Exportar Aprobadas',btnExportPay:'Exportar para Pago',
+    modalAppTitle:'Resumen de Aprobaciones',modalPayTitle:'Resumen de Pagos',
+    modalAppText:'Se aprobaran ',modalPayText:'Se procesaran para pago ',modalInvFor:' facturas por ',
+    modalClose:'Cerrar',modalExport:'Exportar a Excel',
+    noResTitle:'Sin Facturas',noResText:'No se encontraron facturas con los filtros actuales',
+    alertNoSel:'No hay facturas seleccionadas.',alertNoData:'No hay datos para exportar.',
+    alertNoPay:'No tienes permisos para generar pagos. Contacta a un Administrador.',
+    errStores:'Errores en {0} tienda(s): ',
+    ps0:'Pagado',ps1:'Sin Pagar',ps2:'Pago Parcial',ps5:'Rechazado',
+    as0:'Sin Asignar',as1:'Pendiente',as3:'Aprobado',as4:'Rechazado',as5:'Rechazado',
+    pm0:'Cheque',pm1:'ACH',pm2:'Tarjeta Virtual',pm4:'PayPal',pm7:'Wire Internacional',pm11:'RTP / Pago Instantaneo',pmOther:'Otro',
+    xlSheet:'Aprobaciones',xlSheetPay:'Pagos',xlYes:'SI',xlNo:'NO',
+    unknownVendor:'Desconocido',noVendorName:'Sin nombre',
+    thModalStore:'Tienda',thModalVendor:'Proveedor',thModalInv:'Num Factura',thModalAmt:'Monto',
+    thModalPaySt:'Estado Pago',thModalAppSt:'Estado Aprob.',thModalMethod:'Metodo Pago',thModalDate:'Fecha Pago',
+    xlStore:'Tienda',xlVendor:'Proveedor',xlInvNum:'Num Factura',xlInvDate:'Fecha Factura',xlDueDate:'Fecha Vencimiento',
+    xlAmount:'Monto',xlDue:'Vencimiento',xlPaySt:'Estado Pago',xlAppSt:'Estado Aprobacion',xlPayMethod:'Metodo de Pago',
+    xlSugDate:'Fecha Pago Sugerida',xlSelected:'Seleccionada',
+    btnReview:'Revisar Seleccion',reviewTitle:'Revision de Pagos',
+    groupByStoreVendor:'Tienda > Proveedor',groupByVendorStore:'Proveedor > Tienda',
+    groupBy:'Agrupar por:',subtotal:'Subtotal',grandTotal:'GRAN TOTAL',
+    invoices:'facturas',expandAll:'Expandir Todo',collapseAll:'Colapsar Todo',
+    btnConfirmPay:'Confirmar y Pagar',payConfirmTitle:'Confirmar Pago',
+    payConfirmMsg:'Se van a procesar <strong>{0}</strong> pagos por <strong>${1}</strong>. Esta accion enviara los pagos a BILL.com. Deseas continuar?',
+    payProcessing:'Procesando Pagos',payProcessingStore:'Pagando tienda {0} de {1}...',
+    payResultTitle:'Resultado de Pagos',paySuccess:'Pagos enviados correctamente',payError:'Error',
+    payResultOk:'{0}: {1} factura(s) procesada(s) correctamente',payResultErr:'{0}: Error - {1}',
+    payDone:'Listo',
+    tabHistory:'Historial',sumHistory:'Total Facturas',
+    thCreatedBy:'Creado Por',thCreatedDate:'Fecha Creacion',thApprovedBy:'Aprobado Por',thApprovedDate:'Fecha Aprob.',thPaidBy:'Pagado Por',thPaidDate:'Fecha Pago',
+    thDetail:'Detalle',btnLoadDetail:'Ver',loadingDetail:'Cargando...',
+    fStatus:'Estado',fStatusAll:'Todos',fStatusPaid:'Pagadas',fStatusApproved:'Aprobadas',fStatusPending:'Pendientes',
+    btnSearch:'Buscar',historyEmpty:'Selecciona al menos un filtro y presiona Buscar para consultar el historial.',
+    btnConfirmApp:'Confirmar Aprobacion',appConfirmTitle:'Confirmar Aprobacion',
+    appConfirmMsg:'Se van a aprobar <strong>{0}</strong> facturas por <strong>${1}</strong> en BILL.com con el usuario <strong>{2}</strong>. Deseas continuar?',
+    appProcessing:'Aprobando Facturas',appProcessingBill:'Aprobando factura {0} de {1}...',
+    appResultTitle:'Resultado de Aprobaciones',appSuccess:'Facturas aprobadas correctamente',
+    appResultOk:'{0} - {1}: Aprobada correctamente',appResultErr:'{0} - {1}: Error - {2}'
+  },
+  en: {
+    subtitle:'Invoice Management',tabApproval:'Approval',tabPayment:'Payments',logout:'Logout',userBadge:'User:',
+    connecting:'Connecting to BILL.com...',connOk:'Connected to BILL.com — {0} stores detected',
+    connErr:'Connection error. Make sure to run <code>node server.js</code> and open <a href="http://localhost:3000">http://localhost:3000</a>. Error: ',
+    loginTitle:'Sign In',loginSubtitle:'Select your user and enter your BILL.com password',
+    pwSection:'Enter your password',pwLabel:'BILL.com Password',pwPlaceholder:'Your BILL.com password',
+    pwShow:'Show password',pwHide:'Hide password',btnLogin:'SIGN IN',btnVerifying:'VERIFYING...',
+    errNoPw:'Enter your password.',errLoginFail:'Incorrect password or no access. Error: ',
+    noUsers:'No active users found.',noName:'No name',hello:'Hello, ',
+    loadTitle:'Loading Invoices',loadConn:'Connecting to stores...',loadStore:'Store {0} of {1}: {2}',loadApprovers:'Store {0}/{1}: checking approvers...',
+    fStore:'Store',fVendor:'Vendor',fDateFrom:'Date From',fDateTo:'Date To',fDueStatus:'Due Status',
+    fAll:'All',fAllV:'All',fOverdue:'Overdue',fSoon:'Due Soon (7 days)',fNormal:'Current',fClear:'Clear',
+    thStore:'Store',thVendor:'Vendor',thInvNum:'Invoice #',thInvDate:'Invoice Date',thDueDate:'Due Date',
+    thAmount:'Amount',thDue:'Due Status',thPaySt:'Payment Status',thAppSt:'Approval Status',thPayMethod:'Payment Method',
+    thSugDate:'Suggested Pay Date',thApprove:'Approve',thPay:'Pay',
+    tagOverdue:'OVERDUE',tagSoon:'DUE SOON',tagNormal:'CURRENT',
+    sumPending:'Pending Approval',sumApproved:'Approved Unpaid',sumTotal:'Total Amount',
+    sumOverdue:'Overdue',sumSoon:'Due Soon (7 days)',sumSelected:'Selected',
+    selected:'selected',total:'Total:',
+    btnExportAll:'Export All',btnSaveApp:'Save Approvals',btnConfirmPay:'Confirm Payments',
+    btnExportApp:'Export Approved',btnExportPay:'Export for Payment',
+    modalAppTitle:'Approval Summary',modalPayTitle:'Payment Summary',
+    modalAppText:'Will approve ',modalPayText:'Will process for payment ',modalInvFor:' invoices for ',
+    modalClose:'Close',modalExport:'Export to Excel',
+    noResTitle:'No Invoices',noResText:'No invoices found with current filters',
+    alertNoSel:'No invoices selected.',alertNoData:'No data to export.',
+    alertNoPay:'You don\'t have permission to make payments. Contact an Administrator.',
+    errStores:'Errors in {0} store(s): ',
+    ps0:'Paid',ps1:'Unpaid',ps2:'Partial',ps5:'Rejected',
+    as0:'Unassigned',as1:'Pending',as3:'Approved',as4:'Rejected',as5:'Rejected',
+    pm0:'Check',pm1:'ACH',pm2:'Virtual Card',pm4:'PayPal',pm7:'International Wire',pm11:'RTP / Instant Payment',pmOther:'Other',
+    xlSheet:'Approvals',xlSheetPay:'Payments',xlYes:'YES',xlNo:'NO',
+    unknownVendor:'Unknown',noVendorName:'No name',
+    thModalStore:'Store',thModalVendor:'Vendor',thModalInv:'Invoice #',thModalAmt:'Amount',
+    thModalPaySt:'Pay Status',thModalAppSt:'Approval',thModalMethod:'Pay Method',thModalDate:'Pay Date',
+    xlStore:'Store',xlVendor:'Vendor',xlInvNum:'Invoice #',xlInvDate:'Invoice Date',xlDueDate:'Due Date',
+    xlAmount:'Amount',xlDue:'Due Status',xlPaySt:'Payment Status',xlAppSt:'Approval Status',xlPayMethod:'Payment Method',
+    xlSugDate:'Suggested Pay Date',xlSelected:'Selected',
+    btnReview:'Review Selection',reviewTitle:'Payment Review',
+    groupByStoreVendor:'Store > Vendor',groupByVendorStore:'Vendor > Store',
+    groupBy:'Group by:',subtotal:'Subtotal',grandTotal:'GRAND TOTAL',
+    invoices:'invoices',expandAll:'Expand All',collapseAll:'Collapse All',
+    btnConfirmPay:'Confirm & Pay',payConfirmTitle:'Confirm Payment',
+    payConfirmMsg:'<strong>{0}</strong> payment(s) will be processed for <strong>${1}</strong>. This will send payments to BILL.com. Continue?',
+    payProcessing:'Processing Payments',payProcessingStore:'Paying store {0} of {1}...',
+    payResultTitle:'Payment Results',paySuccess:'Payments sent successfully',payError:'Error',
+    payResultOk:'{0}: {1} invoice(s) processed successfully',payResultErr:'{0}: Error - {1}',
+    payDone:'Done',
+    tabHistory:'History',sumHistory:'Total Invoices',
+    thCreatedBy:'Created By',thCreatedDate:'Created Date',thApprovedBy:'Approved By',thApprovedDate:'Approved Date',thPaidBy:'Paid By',thPaidDate:'Paid Date',
+    thDetail:'Detail',btnLoadDetail:'View',loadingDetail:'Loading...',
+    fStatus:'Status',fStatusAll:'All',fStatusPaid:'Paid',fStatusApproved:'Approved',fStatusPending:'Pending',
+    btnSearch:'Search',historyEmpty:'Select at least one filter and press Search to query the history.',
+    btnConfirmApp:'Confirm Approval',appConfirmTitle:'Confirm Approval',
+    appConfirmMsg:'<strong>{0}</strong> invoice(s) for <strong>${1}</strong> will be approved in BILL.com as <strong>{2}</strong>. Continue?',
+    appProcessing:'Approving Invoices',appProcessingBill:'Approving invoice {0} of {1}...',
+    appResultTitle:'Approval Results',appSuccess:'Invoices approved successfully',
+    appResultOk:'{0} - {1}: Approved successfully',appResultErr:'{0} - {1}: Error - {2}'
+  }
+};
+
+function t(key) { return (LANG[currentLang] || LANG.es)[key] || key; }
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('ck_lang', lang);
+  document.documentElement.lang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  applyStaticLang();
+  // Re-render dynamic content if dashboard is visible
+  if (document.getElementById('screenDash').classList.contains('active')) {
+    populateFilters();
+    applyFilters();
+    renderSummary();
+    updateModuleButtons();
+  }
+  updateBottomBarText();
+}
+
+function applyStaticLang() {
+  // Topbar
+  document.querySelector('.topbar .subtitle').innerHTML = t('subtitle') + ' &bull; BILL.com';
+  document.querySelector('.tab-btn[data-mod="approval"]').textContent = t('tabApproval');
+  document.querySelector('.tab-btn[data-mod="payment"]').textContent = t('tabPayment');
+  document.querySelector('.tab-btn[data-mod="history"]').textContent = t('tabHistory');
+  document.getElementById('btnLogout').textContent = t('logout');
+  // Login
+  document.querySelector('.login-header h2').textContent = t('loginTitle');
+  document.querySelector('.login-header p').textContent = t('loginSubtitle');
+  document.getElementById('pwInput').placeholder = t('pwPlaceholder');
+  document.querySelector('.password-section label').textContent = t('pwLabel');
+  document.getElementById('btnLogin').textContent = t('btnLogin');
+  document.getElementById('pwToggle').title = t('pwShow');
+  // Filters
+  document.querySelectorAll('.filters-bar .filter-group label').forEach((lbl, i) => {
+    const keys = ['fStore','fVendor','fDateFrom','fDateTo','fDueStatus'];
+    if (keys[i]) lbl.textContent = t(keys[i]);
+  });
+  document.getElementById('btnClearFilters').textContent = t('fClear');
+  // Due status filter options
+  const dueSelect = document.getElementById('filterDueStatus');
+  const dueVal = dueSelect.value;
+  dueSelect.innerHTML = '<option value="">' + t('fAll') + '</option>'
+    + '<option value="overdue">' + t('fOverdue') + '</option>'
+    + '<option value="soon">' + t('fSoon') + '</option>'
+    + '<option value="normal">' + t('fNormal') + '</option>';
+  dueSelect.value = dueVal;
+  // No results
+  document.querySelector('#noResults h3').textContent = t('noResTitle');
+  document.querySelector('#noResults p').textContent = t('noResText');
+  // Bottom bar
+  const selLabel = document.getElementById('selLabel');
+  const totalLabel = document.getElementById('totalLabel');
+  if (selLabel) selLabel.textContent = t('selected');
+  if (totalLabel) totalLabel.textContent = t('total');
+  // Modal
+  document.querySelector('#summaryModal .modal-footer .btn-secondary').textContent = t('modalClose');
+}
+
+function updateModuleButtons() {
+  const actionBtn = document.getElementById('btnAction');
+  const isApproval = currentModule === 'approval';
+  if (isApproval) {
+    actionBtn.innerHTML = '&#9989; ' + t('btnSaveApp');
+    document.getElementById('modalExportBtn').innerHTML = '&#128196; ' + t('btnExportApp');
+  } else {
+    actionBtn.innerHTML = '&#128269; ' + t('btnReview');
+    document.getElementById('modalExportBtn').innerHTML = '&#128196; ' + t('btnExportPay');
+  }
+}
+
+function updateBottomBarText() {
+  document.querySelector('.bottom-bar .actions .btn-secondary').innerHTML = '&#128196; ' + t('btnExportAll');
+}
+
+// ---- API ----
+function apiUrl(endpoint) {
+  return '/api/v2/' + endpoint;
+}
+
+async function apiPost(endpoint, params) {
+  const res = await fetch(apiUrl(endpoint), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(params)
+  });
+  const data = await res.json();
+  if (data.response_status !== 0) {
+    // Extract detailed error from response_data if available
+    let msg = data.response_message || 'API Error';
+    if (data.response_data && data.response_data.error_message) {
+      msg += ': ' + data.response_data.error_message;
+    }
+    if (data.response_data && data.response_data.error_code) {
+      msg += ' (' + data.response_data.error_code + ')';
+    }
+    throw new Error(msg);
+  }
+  return data.response_data;
+}
+
+async function doListOrgs(email, password) {
+  return apiPost('ListOrgs.json', { devKey: DEV_KEY, userName: email, password: password });
+}
+
+async function doLoginOrg(email, password, orgId) {
+  return apiPost('Login.json', { devKey: DEV_KEY, userName: email, password: password, orgId: orgId });
+}
+
+async function doListUsers(sessionId) {
+  return apiPost('List/User.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ start: 0, max: 999 }) });
+}
+
+async function doListBills(sessionId, filters) {
+  return apiPost('List/Bill.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ start: 0, max: 999, filters }) });
+}
+
+async function doListVendors(sessionId) {
+  return apiPost('List/Vendor.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ start: 0, max: 999 }) });
+}
+
+async function doListProfiles(sessionId) {
+  return apiPost('List/Profile.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ start: 0, max: 999 }) });
+}
+
+async function doReadVendor(sessionId, vendorId) {
+  return apiPost('Crud/Read/Vendor.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ id: vendorId }) });
+}
+
+async function doListApprovers(sessionId, billId) {
+  return apiPost('ListApprovers.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ entity: 'Bill', objectId: billId }) });
+}
+
+async function doPayBills(sessionId, payData) {
+  return apiPost('PayBills.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify(payData) });
+}
+
+async function doApproveBill(sessionId, billId) {
+  return apiPost('Approve.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ entity: 'Bill', objectId: billId }) });
+}
+
+async function doGetBillDetail(sessionId, billId) {
+  // Get approvers and any audit info for a bill
+  const approvers = await apiPost('ListApprovers.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ entity: 'Bill', objectId: billId }) }).catch(() => []);
+  return approvers;
+}
+
+async function doListApprovalGroups(sessionId) {
+  return apiPost('List/ApprovalGroup.json', { devKey: DEV_KEY, sessionId, data: JSON.stringify({ start: 0, max: 999 }) });
+}
+
+// Build a map: groupId -> Set of user emails (for matching across orgs)
+function buildGroupEmailMap(groups) {
+  const map = {};
+  (groups || []).forEach(g => {
+    if (g.isActive !== '1') return;
+    const emails = new Set();
+    (g.approvalGroupUsers || []).forEach(u => {
+      if (u.isActive === '1' && u.user && u.user.email) {
+        emails.add(u.user.email.toLowerCase());
+      }
+    });
+    map[g.id] = emails;
+  });
+  return map;
+}
+
+// Check if user email is an approver (direct user or via group)
+function isUserInApprovers(approvers, userEmail, currentUserId, groupEmailMap) {
+  if (!Array.isArray(approvers) || approvers.length === 0) return false;
+  for (const a of approvers) {
+    // Direct user match
+    if (a.usersIdType !== 'approvalGroup' && a.usersId === currentUserId) return true;
+    // Group match: check if user email is in the group's members
+    if (a.usersIdType === 'approvalGroup' && groupEmailMap[a.usersId]) {
+      if (groupEmailMap[a.usersId].has(userEmail.toLowerCase())) return true;
+    }
+  }
+  return false;
+}
+
+// Check if user profile allows making payments
+function checkPayPermission(userObj, profiles) {
+  if (!userObj || !userObj.profileId) return false;
+  const profile = (profiles || []).find(p => p.id === userObj.profileId);
+  if (!profile) return false;
+  const name = (profile.name || '').toLowerCase();
+  return name.includes('admin') || name.includes('payer');
+}
+
+// ---- Init ----
+window.addEventListener('DOMContentLoaded', initApp);
+
+async function initApp() {
+  // Apply saved language on load
+  setLanguage(currentLang);
+  const status = document.getElementById('connStatus');
+  status.textContent = t('connecting');
+  try {
+    allOrgs = await doListOrgs(BOOTSTRAP_USER, BOOTSTRAP_PASS);
+    status.className = 'conn-status ok';
+    status.textContent = t('connOk').replace('{0}', allOrgs.length);
+
+    const login = await doLoginOrg(BOOTSTRAP_USER, BOOTSTRAP_PASS, allOrgs[0].orgId);
+    const users = await doListUsers(login.sessionId);
+    allUsersFirstOrg = (users || []).filter(u => u.isActive === '1');
+    renderUserCards();
+  } catch (e) {
+    status.className = 'conn-status err';
+    status.innerHTML = t('connErr') + escHtml(e.message);
+  }
+}
+
+// ---- Login Screen ----
+function togglePassword() {
+  const inp = document.getElementById('pwInput');
+  const btn = document.getElementById('pwToggle');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.innerHTML = '&#128064;';
+    btn.title = t('pwHide');
+  } else {
+    inp.type = 'password';
+    btn.innerHTML = '&#128065;';
+    btn.title = t('pwShow');
+  }
+}
+
+function renderUserCards() {
+  const grid = document.getElementById('userGrid');
+  if (allUsersFirstOrg.length === 0) {
+    grid.innerHTML = '<p style="color:var(--ck-gray-500);grid-column:1/-1;">' + t('noUsers') + '</p>';
+    return;
+  }
+  grid.innerHTML = allUsersFirstOrg.map(u => {
+    const name = ((u.firstName || '') + ' ' + (u.lastName || '')).trim();
+    const initials = ((u.firstName || '?')[0] + (u.lastName || '?')[0]).toUpperCase();
+    const email = u.email || '';
+    return '<div class="user-card" data-email="' + escAttr(email) + '" data-name="' + escAttr(name) + '" onclick="selectUser(this)">'
+      + '<div class="avatar">' + initials + '</div>'
+      + '<div class="user-name">' + (escHtml(name) || t('noName')) + '</div>'
+      + '<div class="user-email">' + escHtml(email) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function selectUser(card) {
+  document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  const email = card.dataset.email;
+  const name = card.dataset.name;
+
+  const section = document.getElementById('passwordSection');
+  section.classList.add('active');
+  document.getElementById('pwTitle').textContent = t('hello') + name;
+  document.getElementById('pwUser').textContent = email;
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwError').classList.remove('active');
+  document.getElementById('pwInput').focus();
+
+  sessionUser.email = email;
+  sessionUser.name = name;
+}
+
+async function doLogin() {
+  const pw = document.getElementById('pwInput').value.trim();
+  const errEl = document.getElementById('pwError');
+  const btn = document.getElementById('btnLogin');
+
+  if (!pw) {
+    errEl.textContent = t('errNoPw');
+    errEl.classList.add('active');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = t('btnVerifying');
+  errEl.classList.remove('active');
+
+  try {
+    const orgs = await doListOrgs(sessionUser.email, pw);
+    sessionUser.password = pw;
+    allOrgs = orgs;
+    await loadAllData();
+  } catch (e) {
+    errEl.textContent = t('errLoginFail') + e.message;
+    errEl.classList.add('active');
+    btn.disabled = false;
+    btn.textContent = t('btnLogin');
+  }
+}
+
+function logout() {
+  sessionUser = { email: '', password: '', name: '' };
+  pendingBills = [];
+  approvedBills = [];
+  historyBills = [];
+  filteredBills = [];
+  userNameMap = {};
+  canPayAnyOrg = false;
+  currentModule = 'approval';
+  document.getElementById('moduleTabs').classList.remove('active');
+  document.getElementById('headerUserBadge').style.display = 'none';
+  document.getElementById('btnLogout').style.display = 'none';
+  document.getElementById('bottomBar').classList.remove('active');
+  document.getElementById('passwordSection').classList.remove('active');
+  document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
+  showScreen('screenLogin');
+  // Re-init with bootstrap creds in case user list needs refresh
+  initApp();
+}
+
+// ---- Load All Data ----
+async function loadAllData() {
+  showLoading(true, t('loadTitle'));
+  setLoadingMsg(t('loadConn'), 0);
+  pendingBills = [];
+  approvedBills = [];
+  historyBills = [];
+  userNameMap = {};
+  canPayAnyOrg = false;
+
+  const total = allOrgs.length;
+  let loaded = 0;
+  let errors = [];
+  const orgSessions = {}; // Keep sessions for vendor retry
+
+  for (const org of allOrgs) {
+    loaded++;
+    const orgName = org.orgName || org.orgId;
+    setLoadingMsg(t('loadStore').replace('{0}',loaded).replace('{1}',total).replace('{2}',orgName), Math.round((loaded / total) * 100));
+
+    try {
+      let loginData;
+      try {
+        loginData = await doLoginOrg(sessionUser.email, sessionUser.password, org.orgId);
+      } catch (loginErr) {
+        continue;
+      }
+      const sid = loginData.sessionId;
+      const currentUserId = loginData.usersId;
+      orgSessions[org.orgId] = sid;
+
+      // Parallel: bills (pending, approved), vendors, users, profiles, approval groups
+      const [rawPending, rawApproved, vendors, orgUsers, profiles, approvalGroups] = await Promise.all([
+        doListBills(sid, [{ field: 'approvalStatus', op: '=', value: '1' }, { field: 'isActive', op: '=', value: '1' }]).catch(() => []),
+        doListBills(sid, [{ field: 'approvalStatus', op: '=', value: '3' }, { field: 'isActive', op: '=', value: '1' }]).catch(() => []),
+        doListVendors(sid).catch(() => []),
+        doListUsers(sid).catch(() => []),
+        doListProfiles(sid).catch(() => []),
+        doListApprovalGroups(sid).catch(() => [])
+      ]);
+
+      // --- Build user name map for this org ---
+      (orgUsers || []).forEach(u => {
+        if (u.id) userNameMap[u.id] = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || u.email || u.id;
+      });
+
+      // --- Permission checks ---
+      const currentUserInOrg = (orgUsers || []).find(u =>
+        u.email === sessionUser.email && u.isActive === '1'
+      );
+      const orgCanPay = checkPayPermission(currentUserInOrg, profiles);
+      if (orgCanPay) canPayAnyOrg = true;
+
+      // Vendor map (name + effective payment method)
+      const vMap = {};
+      (vendors || []).forEach(v => {
+        // If vendor has active virtual card (status=5), payment goes via VCard regardless of payBy
+        const effectivePayBy = (v.vendorVCardStatus === '5') ? '2' : (v.payBy != null ? String(v.payBy) : '');
+        vMap[v.id] = { name: v.name || t('noVendorName'), payBy: effectivePayBy };
+      });
+
+      // --- Pending bills: filter by actual approvers ---
+      const activePending = (rawPending || []).filter(b =>
+        b.isActive === '1' && b.approvalStatus === '1'
+      );
+
+      if (activePending.length > 0) {
+        const groupEmailMap = buildGroupEmailMap(approvalGroups);
+
+        // Get approvers for each pending bill in parallel
+        setLoadingMsg(t('loadStore').replace('{0}',loaded).replace('{1}',total).replace('{2}',orgName + ' - approvers'), Math.round((loaded / total) * 100));
+        const approverResults = await Promise.all(
+          activePending.map(b => doListApprovers(sid, b.id).catch(() => []))
+        );
+
+        // Filter: only bills assigned to current user (directly or via group)
+        const userEmail = sessionUser.email;
+        activePending.forEach((b, i) => {
+          const billApprovers = approverResults[i] || [];
+          if (isUserInApprovers(billApprovers, userEmail, currentUserId, groupEmailMap)) {
+            pendingBills.push(buildBillRow(b, orgName, org.orgId, vMap));
+          }
+        });
+      }
+
+      // --- Approved bills ---
+      if (orgCanPay) {
+        const orgApproved = (rawApproved || [])
+          .filter(b => b.isActive === '1' && b.approvalStatus === '3' && b.paymentStatus !== '0')
+          .map(b => buildBillRow(b, orgName, org.orgId, vMap));
+        approvedBills = approvedBills.concat(orgApproved);
+      }
+
+      // History bills loaded on-demand via searchHistory()
+
+    } catch (e) {
+      errors.push(orgName + ': ' + e.message);
+    }
+  }
+
+  // --- Resolve unresolved vendors (vendor name still equals the raw ID) ---
+  const allBills = pendingBills.concat(approvedBills).concat(historyBills);
+  const unresolvedByOrg = {};
+  allBills.forEach(b => {
+    if (b.vendor === b.vendorId) { // name was not resolved
+      if (!unresolvedByOrg[b.orgId]) unresolvedByOrg[b.orgId] = new Set();
+      unresolvedByOrg[b.orgId].add(b.vendorId);
+    }
+  });
+
+  const unresolvedOrgs = Object.keys(unresolvedByOrg);
+  if (unresolvedOrgs.length > 0) {
+    setLoadingMsg(currentLang === 'es' ? 'Resolviendo proveedores...' : 'Resolving vendors...', 95);
+    const vendorCache = {};
+    for (const oid of unresolvedOrgs) {
+      const sid = orgSessions[oid];
+      if (!sid) continue;
+      const vendorIds = [...unresolvedByOrg[oid]];
+      const reads = await Promise.all(
+        vendorIds.map(vid => doReadVendor(sid, vid).catch(() => null))
+      );
+      reads.forEach(v => {
+        if (v && v.id && v.name) {
+          const epb = (v.vendorVCardStatus === '5') ? '2' : (v.payBy != null ? String(v.payBy) : '');
+          vendorCache[v.id] = { name: v.name, payBy: epb };
+        }
+      });
+    }
+    // Patch bills with resolved vendor info
+    allBills.forEach(b => {
+      if (b.vendor === b.vendorId && vendorCache[b.vendorId]) {
+        const info = vendorCache[b.vendorId];
+        b.vendor = info.name;
+        b.paymentMethod = info.payBy;
+      }
+    });
+  }
+
+  showLoading(false);
+
+  // Show dashboard
+  document.getElementById('headerUserBadge').innerHTML = t('userBadge') + ' <strong>' + escHtml(sessionUser.name) + '</strong>';
+  document.getElementById('headerUserBadge').style.display = 'inline-block';
+  document.getElementById('btnLogout').style.display = 'inline-block';
+  document.getElementById('moduleTabs').classList.add('active');
+
+  const pagosTab = document.querySelector('.tab-btn[data-mod="payment"]');
+  if (pagosTab) pagosTab.style.display = canPayAnyOrg ? '' : 'none';
+
+  showScreen('screenDash');
+  switchModule('approval');
+
+  if (errors.length > 0) {
+    showError('errorBannerDash', t('errStores').replace('{0}',errors.length) + errors.slice(0, 3).join(' | ') + (errors.length > 3 ? '...' : ''));
+  }
+}
+
+function buildBillRow(b, orgName, orgId, vMap) {
+  const vInfo = vMap[b.vendorId] || {};
+  return {
+    orgId: orgId,
+    store: orgName,
+    billId: b.id,
+    vendorId: b.vendorId,
+    vendor: vInfo.name || b.vendorId || t('unknownVendor'),
+    invoiceNumber: b.invoiceNumber || '—',
+    invoiceDate: b.invoiceDate || null,
+    dueDate: b.dueDate || null,
+    amount: parseFloat(b.amount) || 0,
+    paymentStatus: b.paymentStatus,
+    approvalStatus: b.approvalStatus,
+    paymentMethod: vInfo.payBy != null ? vInfo.payBy : '',
+    suggestedPayDate: calcSuggestedDate(b.dueDate, b.invoiceDate),
+    checked: false
+  };
+}
+
+function translatePaymentStatus(code) {
+  const map = { '0': t('ps0'), '1': t('ps1'), '2': t('ps2'), '5': t('ps5') };
+  return map[code] || code || '—';
+}
+
+function translateApprovalStatus(code) {
+  const map = { '0': t('as0'), '1': t('as1'), '3': t('as3'), '4': t('as4'), '5': t('as5') };
+  return map[code] || code || '—';
+}
+
+function paymentStatusTag(code) {
+  const label = translatePaymentStatus(code);
+  const cls = { '0': 'tag-paid', '1': 'tag-unpaid', '2': 'tag-partial', '5': 'tag-rejected' };
+  return '<span class="tag ' + (cls[code] || '') + '">' + label + '</span>';
+}
+
+function approvalStatusTag(code) {
+  const label = translateApprovalStatus(code);
+  const cls = { '0': 'tag-unassigned', '1': 'tag-pending', '3': 'tag-approved', '4': 'tag-rejected', '5': 'tag-rejected' };
+  return '<span class="tag ' + (cls[code] || '') + '">' + label + '</span>';
+}
+
+function translatePaymentMethod(code) {
+  const map = { '0': t('pm0'), '1': t('pm1'), '2': t('pm2'), '4': t('pm4'), '7': t('pm7'), '11': t('pm11') };
+  return map[String(code)] || (code ? t('pmOther') + ' (' + code + ')' : '—');
+}
+
+function paymentMethodTag(code) {
+  const label = translatePaymentMethod(code);
+  const cls = {
+    '0': 'tag-method-check',
+    '1': 'tag-method-ach',
+    '2': 'tag-method-card',
+    '4': 'tag-method-paypal',
+    '7': 'tag-method-wire',
+    '11': 'tag-method-direct'
+  };
+  return '<span class="tag ' + (cls[String(code)] || 'tag-unassigned') + '">' + label + '</span>';
+}
+
+function calcSuggestedDate(dueDate, invoiceDate) {
+  if (!dueDate) return formatDateISO(new Date());
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate + 'T00:00:00');
+
+  // Already overdue: use today
+  if (due < today) return formatDateISO(today);
+
+  // Due date equals invoice date and not overdue: use due date as-is
+  if (invoiceDate && dueDate === invoiceDate) return dueDate;
+
+  // Not yet due: use due date minus 1 day
+  const d = new Date(due);
+  d.setDate(d.getDate() - 1);
+  // If minus-1 results in past, use today
+  return d < today ? formatDateISO(today) : formatDateISO(d);
+}
+
+// ---- Module Switching ----
+function switchModule(mod) {
+  if (mod === 'payment' && !canPayAnyOrg) {
+    alert(t('alertNoPay'));
+    return;
+  }
+  currentModule = mod;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.mod === mod));
+
+  const actionBtn = document.getElementById('btnAction');
+  const bottomBar = document.getElementById('bottomBar');
+  if (mod === 'approval') {
+    actionBtn.innerHTML = '&#9989; ' + t('btnSaveApp');
+    actionBtn.className = 'btn btn-primary';
+    document.getElementById('modalExportBtn').innerHTML = '&#128196; ' + t('btnExportApp');
+    bottomBar.classList.add('active');
+  } else if (mod === 'payment') {
+    actionBtn.innerHTML = '&#128269; ' + t('btnReview');
+    actionBtn.onclick = showSummaryModal;
+    actionBtn.className = 'btn btn-blue';
+    document.getElementById('modalExportBtn').innerHTML = '&#128196; ' + t('btnExportPay');
+    bottomBar.classList.add('active');
+  } else {
+    // History: hide action bar
+    bottomBar.classList.remove('active');
+  }
+
+  // Reset checks
+  pendingBills.forEach(b => b.checked = false);
+  approvedBills.forEach(b => b.checked = false);
+
+  populateFilters();
+
+  if (mod === 'history') {
+    // Start empty — user must search
+    historyBills = [];
+    filteredBills = [];
+    renderTableHead();
+    document.getElementById('tableBody').innerHTML = '';
+    document.getElementById('noResults').style.display = 'block';
+    document.querySelector('#noResults h3').textContent = t('btnSearch');
+    document.querySelector('#noResults p').textContent = t('historyEmpty');
+    renderSummary();
+    return;
+  }
+
+  applyFilters();
+  renderSummary();
+}
+
+function getActiveBills() {
+  if (currentModule === 'approval') return pendingBills;
+  if (currentModule === 'payment') return approvedBills;
+  return historyBills;
+}
+
+// ---- Render ----
+function renderSummary() {
+  const bills = filteredBills;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let overdue = 0, soon = 0, totalAmt = 0;
+  bills.forEach(b => {
+    totalAmt += b.amount;
+    const s = dueDateStatus(b.dueDate);
+    if (s === 'overdue') overdue++;
+    else if (s === 'soon') soon++;
+  });
+
+  const checked = getActiveBills().filter(b => b.checked);
+  const checkedAmt = checked.reduce((s, b) => s + b.amount, 0);
+
+  const isApproval = currentModule === 'approval';
+  const isHistory = currentModule === 'history';
+  const firstLabel = isHistory ? t('sumHistory') : (isApproval ? t('sumPending') : t('sumApproved'));
+  let summaryHtml =
+    '<div class="stat-card"><div class="stat-label">' + firstLabel + '</div><div class="stat-value">' + bills.length + '</div></div>'
+    + '<div class="stat-card"><div class="stat-label">' + t('sumTotal') + '</div><div class="stat-value">$' + fmtMoney(totalAmt) + '</div></div>'
+    + '<div class="stat-card red"><div class="stat-label">' + t('sumOverdue') + '</div><div class="stat-value">' + overdue + '</div></div>'
+    + '<div class="stat-card yellow"><div class="stat-label">' + t('sumSoon') + '</div><div class="stat-value">' + soon + '</div></div>';
+  if (!isHistory) {
+    summaryHtml += '<div class="stat-card ' + (isApproval ? 'green' : 'blue') + '"><div class="stat-label">' + t('sumSelected') + '</div><div class="stat-value">' + checked.length + '</div></div>';
+  }
+  document.getElementById('dashSummary').innerHTML = summaryHtml;
+
+  document.getElementById('selCount').textContent = checked.length;
+  document.getElementById('selTotal').textContent = '$' + fmtMoney(checkedAmt);
+}
+
+function renderTableHead() {
+  const isApproval = currentModule === 'approval';
+  const isHistory = currentModule === 'history';
+  const si = '<span class="sort-icon">&#9650;&#9660;</span>';
+
+  if (isHistory) {
+    document.getElementById('tableHead').innerHTML =
+      '<tr>'
+      + '<th data-col="store" onclick="sortTable(\'store\')">' + t('thStore') + ' ' + si + '</th>'
+      + '<th data-col="vendor" onclick="sortTable(\'vendor\')">' + t('thVendor') + ' ' + si + '</th>'
+      + '<th data-col="invoiceNumber" onclick="sortTable(\'invoiceNumber\')">' + t('thInvNum') + ' ' + si + '</th>'
+      + '<th data-col="amount" onclick="sortTable(\'amount\')">' + t('thAmount') + ' ' + si + '</th>'
+      + '<th data-col="invoiceDate" onclick="sortTable(\'invoiceDate\')">' + t('thInvDate') + ' ' + si + '</th>'
+      + '<th data-col="dueDate" onclick="sortTable(\'dueDate\')">' + t('thDueDate') + ' ' + si + '</th>'
+      + '<th>' + t('thPaySt') + '</th>'
+      + '<th>' + t('thAppSt') + '</th>'
+      + '<th data-col="createdBy" onclick="sortTable(\'createdBy\')">' + t('thCreatedBy') + ' ' + si + '</th>'
+      + '<th>' + t('thCreatedDate') + '</th>'
+      + '<th>' + t('thDetail') + '</th>'
+      + '</tr>';
+    return;
+  }
+
+  document.getElementById('tableHead').innerHTML =
+    '<tr>'
+    + '<th data-col="store" onclick="sortTable(\'store\')">' + t('thStore') + ' ' + si + '</th>'
+    + '<th data-col="vendor" onclick="sortTable(\'vendor\')">' + t('thVendor') + ' ' + si + '</th>'
+    + '<th data-col="invoiceNumber" onclick="sortTable(\'invoiceNumber\')">' + t('thInvNum') + ' ' + si + '</th>'
+    + '<th data-col="invoiceDate" onclick="sortTable(\'invoiceDate\')">' + t('thInvDate') + ' ' + si + '</th>'
+    + '<th data-col="dueDate" onclick="sortTable(\'dueDate\')">' + t('thDueDate') + ' ' + si + '</th>'
+    + '<th data-col="amount" onclick="sortTable(\'amount\')">' + t('thAmount') + ' ' + si + '</th>'
+    + '<th>' + t('thDue') + '</th>'
+    + '<th>' + t('thPaySt') + '</th>'
+    + '<th>' + t('thAppSt') + '</th>'
+    + (!isApproval ? '<th>' + t('thPayMethod') + '</th>' : '')
+    + '<th>' + t('thSugDate') + '</th>'
+    + '<th class="col-check"><input type="checkbox" class="ck-checkbox" id="checkAll" onchange="toggleAll(this.checked)" title="' + (isApproval ? t('thApprove') : t('thPay')) + '"></th>'
+    + '</tr>';
+}
+
+function toggleAll(checked) {
+  filteredBills.forEach((inv, idx) => {
+    inv.checked = checked;
+    const master = getActiveBills().find(m => m.billId === inv.billId && m.orgId === inv.orgId);
+    if (master) master.checked = checked;
+  });
+  renderTableBody();
+  renderSummary();
+  // Keep checkAll in sync
+  const ca = document.getElementById('checkAll');
+  if (ca) ca.checked = checked;
+}
+
+function renderTableBody() {
+  const tbody = document.getElementById('tableBody');
+  const noRes = document.getElementById('noResults');
+  const isHistory = currentModule === 'history';
+
+  if (filteredBills.length === 0) {
+    tbody.innerHTML = '';
+    noRes.style.display = 'block';
+    return;
+  }
+  noRes.style.display = 'none';
+
+  if (isHistory) {
+    tbody.innerHTML = filteredBills.map((inv, idx) => {
+      const status = dueDateStatus(inv.dueDate);
+      let cls = '';
+      if (status === 'overdue') cls = 'row-overdue';
+      else if (status === 'soon') cls = 'row-soon';
+
+      return '<tr class="' + cls + '" id="row-' + idx + '">'
+        + '<td>' + escHtml(inv.store) + '</td>'
+        + '<td>' + escHtml(inv.vendor) + '</td>'
+        + '<td>' + escHtml(inv.invoiceNumber) + '</td>'
+        + '<td class="amount">$' + fmtMoney(inv.amount) + '</td>'
+        + '<td>' + fmtDate(inv.invoiceDate) + '</td>'
+        + '<td>' + fmtDate(inv.dueDate) + '</td>'
+        + '<td>' + paymentStatusTag(inv.paymentStatus) + '</td>'
+        + '<td>' + approvalStatusTag(inv.approvalStatus) + '</td>'
+        + '<td>' + escHtml(inv.createdBy || '—') + '</td>'
+        + '<td>' + fmtDate(inv.createdTime) + '</td>'
+        + '<td><button class="btn btn-secondary" style="padding:3px 8px;font-size:11px" onclick="loadBillDetail(' + idx + ',this)">&#128269; ' + t('btnLoadDetail') + '</button></td>'
+        + '</tr>'
+        + '<tr id="detail-' + idx + '" style="display:none"><td colspan="11" style="padding:0"></td></tr>';
+    }).join('');
+    return;
+  }
+
+  tbody.innerHTML = filteredBills.map((inv, idx) => {
+    const status = dueDateStatus(inv.dueDate);
+    let cls = '';
+    if (inv.checked) cls = 'row-checked';
+    else if (status === 'overdue') cls = 'row-overdue';
+    else if (status === 'soon') cls = 'row-soon';
+
+    return '<tr class="' + cls + '" id="row-' + idx + '">'
+      + '<td>' + escHtml(inv.store) + '</td>'
+      + '<td>' + escHtml(inv.vendor) + '</td>'
+      + '<td>' + escHtml(inv.invoiceNumber) + '</td>'
+      + '<td>' + fmtDate(inv.invoiceDate) + '</td>'
+      + '<td>' + fmtDate(inv.dueDate) + '</td>'
+      + '<td class="amount">$' + fmtMoney(inv.amount) + '</td>'
+      + '<td><span class="tag ' + status + '">' + (status === 'overdue' ? t('tagOverdue') : status === 'soon' ? t('tagSoon') : t('tagNormal')) + '</span></td>'
+      + '<td>' + paymentStatusTag(inv.paymentStatus) + '</td>'
+      + '<td>' + approvalStatusTag(inv.approvalStatus) + '</td>'
+      + (currentModule !== 'approval' ? '<td>' + paymentMethodTag(inv.paymentMethod) + '</td>' : '')
+      + '<td><input type="date" value="' + (inv.suggestedPayDate || '') + '" onchange="updatePayDate(' + idx + ',this.value)"></td>'
+      + '<td class="col-check"><input type="checkbox" class="ck-checkbox" ' + (inv.checked ? 'checked' : '') + ' onchange="toggleCheck(' + idx + ',this.checked)"></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function toggleCheck(idx, checked) {
+  filteredBills[idx].checked = checked;
+  // Sync to master array
+  const inv = filteredBills[idx];
+  const master = getActiveBills().find(m => m.billId === inv.billId && m.orgId === inv.orgId);
+  if (master) master.checked = checked;
+
+  const row = document.getElementById('row-' + idx);
+  if (row) {
+    row.classList.remove('row-checked', 'row-overdue', 'row-soon');
+    if (checked) {
+      row.classList.add('row-checked');
+    } else {
+      const s = dueDateStatus(inv.dueDate);
+      if (s === 'overdue') row.classList.add('row-overdue');
+      else if (s === 'soon') row.classList.add('row-soon');
+    }
+  }
+  renderSummary();
+  // Sync checkAll state
+  const ca = document.getElementById('checkAll');
+  if (ca) ca.checked = filteredBills.length > 0 && filteredBills.every(b => b.checked);
+}
+
+function updatePayDate(idx, val) {
+  filteredBills[idx].suggestedPayDate = val;
+  const inv = filteredBills[idx];
+  const master = getActiveBills().find(m => m.billId === inv.billId && m.orgId === inv.orgId);
+  if (master) master.suggestedPayDate = val;
+}
+
+// ---- Filters ----
+// ---- History Search ----
+async function searchHistory() {
+  const store = document.getElementById('filterStore').value;
+  const vendor = document.getElementById('filterVendor').value;
+  const dateFrom = document.getElementById('filterDateFrom').value;
+  const dateTo = document.getElementById('filterDateTo').value;
+  const dueStatus = document.getElementById('filterDueStatus').value;
+  const payStatus = document.getElementById('filterPayStatus').value;
+
+  // Must have at least one filter
+  if (!store && !vendor && !dateFrom && !dateTo && !dueStatus && !payStatus) {
+    alert(t('historyEmpty'));
+    return;
+  }
+
+  showLoading(true, t('tabHistory'));
+  setLoadingMsg(t('loadConn'), 0);
+  historyBills = [];
+
+  const total = allOrgs.length;
+  let loaded = 0;
+
+  for (const org of allOrgs) {
+    loaded++;
+    const orgName = org.orgName || org.orgId;
+
+    // If store filter is set, skip non-matching orgs
+    if (store && orgName !== store) continue;
+
+    setLoadingMsg(t('loadStore').replace('{0}', loaded).replace('{1}', total).replace('{2}', orgName), Math.round((loaded / total) * 100));
+
+    try {
+      let loginData;
+      try {
+        loginData = await doLoginOrg(sessionUser.email, sessionUser.password, org.orgId);
+      } catch (e) { continue; }
+      const sid = loginData.sessionId;
+
+      // Build API filters
+      const apiFilters = [{ field: 'isActive', op: '=', value: '1' }];
+      if (payStatus) apiFilters.push({ field: 'paymentStatus', op: '=', value: payStatus });
+      if (dateFrom) apiFilters.push({ field: 'invoiceDate', op: '>=', value: dateFrom });
+      if (dateTo) apiFilters.push({ field: 'invoiceDate', op: '<=', value: dateTo });
+
+      const [bills, vendors] = await Promise.all([
+        doListBills(sid, apiFilters).catch(() => []),
+        doListVendors(sid).catch(() => [])
+      ]);
+
+      // Build vendor map
+      const vMap = {};
+      (vendors || []).forEach(v => {
+        const effectivePayBy = (v.vendorVCardStatus === '5') ? '2' : (v.payBy != null ? String(v.payBy) : '');
+        vMap[v.id] = { name: v.name || t('noVendorName'), payBy: effectivePayBy };
+      });
+
+      // Build user map from org users
+      const orgUsers = await doListUsers(sid).catch(() => []);
+      (orgUsers || []).forEach(u => {
+        if (u.id) userNameMap[u.id] = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || u.email || u.id;
+      });
+
+      (bills || []).forEach(b => {
+        if (b.isActive !== '1') return;
+        const row = buildBillRow(b, orgName, org.orgId, vMap);
+        row.createdBy = userNameMap[b.createdBy] || b.createdBy || '—';
+        row.createdTime = b.createdTime ? b.createdTime.substring(0, 10) : '';
+        row.updatedTime = b.updatedTime ? b.updatedTime.substring(0, 10) : '';
+        row.fullPaymentDate = b.fullPaymentDate || '';
+        historyBills.push(row);
+      });
+    } catch (e) { /* skip */ }
+  }
+
+  showLoading(false);
+
+  // Apply client-side filters (vendor, dueStatus)
+  filteredBills = historyBills.filter(inv => {
+    if (vendor && inv.vendor !== vendor) return false;
+    if (dueStatus && dueDateStatus(inv.dueDate) !== dueStatus) return false;
+    return true;
+  });
+
+  // Update store/vendor dropdowns with loaded data
+  const stores = [...new Set(historyBills.map(b => b.store))].sort();
+  const vendorsList = [...new Set(historyBills.map(b => b.vendor))].sort();
+  document.getElementById('filterStore').innerHTML = '<option value="">' + t('fAll') + '</option>' + stores.map(s => '<option value="' + escAttr(s) + '"' + (s === store ? ' selected' : '') + '>' + escHtml(s) + '</option>').join('');
+  document.getElementById('filterVendor').innerHTML = '<option value="">' + t('fAllV') + '</option>' + vendorsList.map(v => '<option value="' + escAttr(v) + '"' + (v === vendor ? ' selected' : '') + '>' + escHtml(v) + '</option>').join('');
+
+  sortInvoices();
+  renderTableHead();
+  renderTableBody();
+  renderSummary();
+}
+
+// ---- History Detail ----
+async function loadBillDetail(idx, btn) {
+  const inv = filteredBills[idx];
+  if (!inv) return;
+  const detailRow = document.getElementById('detail-' + idx);
+  if (!detailRow) return;
+
+  // Toggle: if already visible, hide it
+  if (detailRow.style.display !== 'none') {
+    detailRow.style.display = 'none';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = t('loadingDetail');
+
+  try {
+    const loginData = await doLoginOrg(sessionUser.email, sessionUser.password, inv.orgId);
+    const sid = loginData.sessionId;
+
+    // Load approvers + approval groups in parallel to resolve group names
+    const [approvers, groups] = await Promise.all([
+      doGetBillDetail(sid, inv.billId),
+      doListApprovalGroups(sid).catch(() => [])
+    ]);
+
+    // Build group name map for this org
+    const groupNameMap = {};
+    (groups || []).forEach(g => {
+      groupNameMap[g.id] = g.name || g.id;
+      // Also add group members to detail
+      (g.approvalGroupUsers || []).forEach(u => {
+        if (u.user && u.user.id) userNameMap[u.user.id] = u.user.fullname || u.user.email || u.user.id;
+      });
+    });
+
+    const thStyle = 'background:var(--ck-orange-light);color:var(--ck-dark);padding:6px 8px';
+    let html = '<div style="padding:10px 16px;background:var(--ck-gray-100);border-top:2px solid var(--ck-orange)">';
+    html += '<table style="width:100%;font-size:11px"><thead><tr>'
+      + '<th style="' + thStyle + '">#</th>'
+      + '<th style="' + thStyle + '">' + t('thApprovedBy') + '</th>'
+      + '<th style="' + thStyle + '">' + t('thAppSt') + '</th>'
+      + '<th style="' + thStyle + '">' + t('thApprovedDate') + '</th>'
+      + '</tr></thead><tbody>';
+
+    const statusMap = {'0': t('as1'), '1': t('as3'), '2': t('as4'), '4': t('as4'), '5': t('as1')};
+
+    if (Array.isArray(approvers) && approvers.length > 0) {
+      approvers.forEach((a, i) => {
+        const isGroup = a.usersIdType === 'approvalGroup';
+        let displayName;
+        if (isGroup) {
+          const gName = groupNameMap[a.usersId] || a.usersId;
+          displayName = gName + ' (' + (currentLang === 'es' ? 'Grupo' : 'Group') + ')';
+        } else {
+          displayName = userNameMap[a.usersId] || a.usersId || '—';
+        }
+        const st = statusMap[a.status] || a.status;
+        const date = a.statusChangedDate ? fmtDate(a.statusChangedDate.substring(0, 10)) : '—';
+        html += '<tr><td style="padding:5px 8px">' + (a.sortOrder != null ? a.sortOrder : i + 1) + '</td>'
+          + '<td style="padding:5px 8px">' + escHtml(displayName) + '</td>'
+          + '<td style="padding:5px 8px">' + st + '</td>'
+          + '<td style="padding:5px 8px">' + date + '</td></tr>';
+      });
+    } else {
+      html += '<tr><td colspan="4" style="padding:8px;text-align:center;color:var(--ck-gray-500)">—</td></tr>';
+    }
+
+    html += '</tbody></table>';
+
+    if (inv.paymentStatus === '0' || inv.fullPaymentDate) {
+      html += '<div style="margin-top:8px;font-size:12px;color:var(--ck-green-text);font-weight:600">'
+        + t('thPaidDate') + ': ' + (inv.fullPaymentDate ? fmtDate(inv.fullPaymentDate) : '—')
+        + '</div>';
+    }
+
+    html += '</div>';
+    detailRow.querySelector('td').innerHTML = html;
+    detailRow.style.display = '';
+  } catch (e) {
+    detailRow.querySelector('td').innerHTML = '<div style="padding:10px;color:var(--ck-red-text)">' + escHtml(e.message) + '</div>';
+    detailRow.style.display = '';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '&#128269; ' + t('btnLoadDetail');
+}
+
+function populateFilters() {
+  const bills = getActiveBills();
+  const stores = [...new Set(bills.map(b => b.store))].sort();
+  const vendors = [...new Set(bills.map(b => b.vendor))].sort();
+
+  document.getElementById('filterStore').innerHTML = '<option value="">' + t('fAll') + '</option>' + stores.map(s => '<option value="' + escAttr(s) + '">' + escHtml(s) + '</option>').join('');
+  document.getElementById('filterVendor').innerHTML = '<option value="">' + t('fAllV') + '</option>' + vendors.map(v => '<option value="' + escAttr(v) + '">' + escHtml(v) + '</option>').join('');
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value = '';
+  // Show/hide history-only elements
+  const isHistory = currentModule === 'history';
+  document.getElementById('filterPayStatusGroup').style.display = isHistory ? '' : 'none';
+  document.getElementById('filterPayStatus').value = '';
+  document.getElementById('btnSearchHistory').style.display = isHistory ? '' : 'none';
+  document.getElementById('btnSearchHistory').textContent = t('btnSearch');
+}
+
+function applyFilters() {
+  const store = document.getElementById('filterStore').value;
+  const vendor = document.getElementById('filterVendor').value;
+  const dateFrom = document.getElementById('filterDateFrom').value;
+  const dateTo = document.getElementById('filterDateTo').value;
+  const dueStatus = document.getElementById('filterDueStatus').value;
+  const payStatus = document.getElementById('filterPayStatus').value;
+
+  filteredBills = getActiveBills().filter(inv => {
+    if (store && inv.store !== store) return false;
+    if (vendor && inv.vendor !== vendor) return false;
+    if (dateFrom && inv.invoiceDate && inv.invoiceDate < dateFrom) return false;
+    if (dateTo && inv.invoiceDate && inv.invoiceDate > dateTo) return false;
+    if (dueStatus && dueDateStatus(inv.dueDate) !== dueStatus) return false;
+    if (payStatus && inv.paymentStatus !== payStatus) return false;
+    return true;
+  });
+
+  sortInvoices();
+  renderTableHead();
+  renderTableBody();
+  renderSummary();
+}
+
+function clearFilters() {
+  document.getElementById('filterStore').value = '';
+  document.getElementById('filterVendor').value = '';
+  document.getElementById('filterDueStatus').value = '';
+  document.getElementById('filterPayStatus').value = '';
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value = '';
+  applyFilters();
+}
+
+// ---- Sort ----
+function sortTable(col) {
+  if (sortState.col === col) sortState.asc = !sortState.asc;
+  else { sortState.col = col; sortState.asc = true; }
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+  const th = document.querySelector('thead th[data-col="' + col + '"]');
+  if (th) th.classList.add('sorted');
+  sortInvoices();
+  renderTableBody();
+}
+
+function sortInvoices() {
+  const { col, asc } = sortState;
+  filteredBills.sort((a, b) => {
+    let va = a[col], vb = b[col];
+    if (col === 'amount') return asc ? (va||0) - (vb||0) : (vb||0) - (va||0);
+    va = (va || '').toString().toLowerCase();
+    vb = (vb || '').toString().toLowerCase();
+    return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+}
+
+// ---- Modal ----
+function showSummaryModal() {
+  const checked = getActiveBills().filter(b => b.checked);
+  if (checked.length === 0) {
+    alert(t('alertNoSel'));
+    return;
+  }
+
+  // Payment module uses pivot review
+  if (currentModule !== 'approval') {
+    showPaymentReview(checked);
+    return;
+  }
+
+  const total = checked.reduce((s, b) => s + b.amount, 0);
+  document.getElementById('modalTitle').textContent = t('modalAppTitle');
+
+  let html = '<p style="margin-bottom:14px;font-size:14px;">'
+    + t('modalAppText')
+    + '<strong>' + checked.length + '</strong>' + t('modalInvFor') + '<strong>$' + fmtMoney(total) + '</strong></p>';
+
+  html += '<table><thead><tr><th>' + t('thModalStore') + '</th><th>' + t('thModalVendor') + '</th><th>' + t('thModalInv') + '</th><th>' + t('thModalAmt') + '</th><th>' + t('thModalPaySt') + '</th><th>' + t('thModalAppSt') + '</th><th>' + t('thModalDate') + '</th></tr></thead><tbody>';
+  checked.forEach(inv => {
+    html += '<tr><td>' + escHtml(inv.store) + '</td><td>' + escHtml(inv.vendor) + '</td><td>' + escHtml(inv.invoiceNumber) + '</td><td class="amount">$' + fmtMoney(inv.amount) + '</td><td>' + paymentStatusTag(inv.paymentStatus) + '</td><td>' + approvalStatusTag(inv.approvalStatus) + '</td><td>' + fmtDate(inv.suggestedPayDate) + '</td></tr>';
+  });
+  html += '<tr class="total-row"><td colspan="3" style="text-align:right">TOTAL:</td><td class="amount">$' + fmtMoney(total) + '</td><td colspan="3"></td></tr>';
+  html += '</tbody></table>';
+
+  document.getElementById('modalBody').innerHTML = html;
+  // Show approve button in footer
+  document.getElementById('modalPayBtn').style.display = '';
+  document.getElementById('modalPayBtn').innerHTML = '&#9989; ' + t('btnConfirmApp');
+  document.getElementById('modalPayBtn').disabled = false;
+  document.getElementById('modalPayBtn').className = 'btn btn-primary';
+  document.getElementById('modalPayBtn').onclick = confirmAndApprove;
+  document.getElementById('summaryModal').classList.add('active');
+}
+
+// ---- Payment Pivot Review ----
+let reviewGroupMode = 'store-vendor'; // 'store-vendor' | 'vendor-store'
+
+function showPaymentReview(checked) {
+  document.getElementById('modalTitle').textContent = t('reviewTitle');
+  document.getElementById('modalPayBtn').style.display = '';
+  document.getElementById('modalPayBtn').innerHTML = '&#128176; ' + t('btnConfirmPay');
+  document.getElementById('modalPayBtn').disabled = false;
+  document.getElementById('modalPayBtn').className = 'btn btn-blue';
+  document.getElementById('modalPayBtn').onclick = confirmAndPay;
+  renderPivotReview(checked);
+  document.getElementById('summaryModal').classList.add('active');
+}
+
+function renderPivotReview(checked) {
+  if (!checked) checked = getActiveBills().filter(b => b.checked);
+  const total = checked.reduce((s, b) => s + b.amount, 0);
+
+  // Toolbar
+  let html = '<div class="review-toolbar">'
+    + '<label>' + t('groupBy') + '</label>'
+    + '<div class="group-toggle">'
+    + '<button class="group-toggle-btn ' + (reviewGroupMode === 'store-vendor' ? 'active' : '') + '" onclick="changeGroupMode(\'store-vendor\')">' + t('groupByStoreVendor') + '</button>'
+    + '<button class="group-toggle-btn ' + (reviewGroupMode === 'vendor-store' ? 'active' : '') + '" onclick="changeGroupMode(\'vendor-store\')">' + t('groupByVendorStore') + '</button>'
+    + '</div>'
+    + '<div class="review-actions">'
+    + '<button class="btn btn-secondary" onclick="toggleAllPivots(true)">' + t('expandAll') + '</button>'
+    + '<button class="btn btn-secondary" onclick="toggleAllPivots(false)">' + t('collapseAll') + '</button>'
+    + '</div>'
+    + '</div>';
+
+  // Summary line
+  html += '<p style="margin-bottom:14px;font-size:14px;">'
+    + t('modalPayText')
+    + '<strong>' + checked.length + '</strong>' + t('modalInvFor') + '<strong>$' + fmtMoney(total) + '</strong></p>';
+
+  // Build grouped data
+  const primaryKey = reviewGroupMode === 'store-vendor' ? 'store' : 'vendor';
+  const secondaryKey = reviewGroupMode === 'store-vendor' ? 'vendor' : 'store';
+  const groups = {};
+
+  checked.forEach(inv => {
+    const pk = inv[primaryKey];
+    const sk = inv[secondaryKey];
+    if (!groups[pk]) groups[pk] = {};
+    if (!groups[pk][sk]) groups[pk][sk] = [];
+    groups[pk][sk].push(inv);
+  });
+
+  // Render pivot groups
+  const sortedPrimary = Object.keys(groups).sort();
+  let gIdx = 0;
+  sortedPrimary.forEach(pk => {
+    const subGroups = groups[pk];
+    const allInGroup = Object.values(subGroups).flat();
+    const groupTotal = allInGroup.reduce((s, b) => s + b.amount, 0);
+    const groupCount = allInGroup.length;
+
+    html += '<div class="pivot-group">';
+    html += '<div class="pivot-header open" onclick="togglePivot(this)" data-gid="g' + gIdx + '">'
+      + '<span><span class="pivot-arrow">&#9654;</span> <span class="pivot-title">' + escHtml(pk) + '</span></span>'
+      + '<span class="pivot-meta"><span>' + groupCount + ' ' + t('invoices') + '</span> <strong>$' + fmtMoney(groupTotal) + '</strong></span>'
+      + '</div>';
+
+    html += '<div class="pivot-body" id="g' + gIdx + '">';
+    const sortedSecondary = Object.keys(subGroups).sort();
+    let sIdx = 0;
+    sortedSecondary.forEach(sk => {
+      const items = subGroups[sk];
+      const subTotal = items.reduce((s, b) => s + b.amount, 0);
+
+      html += '<div class="pivot-sub">';
+      html += '<div class="pivot-sub-header open" onclick="togglePivot(this)" data-gid="g' + gIdx + 's' + sIdx + '">'
+        + '<span><span class="pivot-arrow">&#9654;</span> ' + escHtml(sk) + ' (' + items.length + ')</span>'
+        + '<span><strong style="color:var(--ck-orange)">$' + fmtMoney(subTotal) + '</strong></span>'
+        + '</div>';
+
+      html += '<div class="pivot-detail" id="g' + gIdx + 's' + sIdx + '">';
+      html += '<table><thead><tr>'
+        + '<th>' + t('thInvNum') + '</th>'
+        + '<th>' + t('thDueDate') + '</th>'
+        + '<th>' + t('thAmount') + '</th>'
+        + '<th>' + t('thPayMethod') + '</th>'
+        + '<th>' + t('thDue') + '</th>'
+        + '<th>' + t('thSugDate') + '</th>'
+        + '</tr></thead><tbody>';
+
+      items.forEach(inv => {
+        const ds = dueDateStatus(inv.dueDate);
+        html += '<tr>'
+          + '<td>' + escHtml(inv.invoiceNumber) + '</td>'
+          + '<td>' + fmtDate(inv.dueDate) + '</td>'
+          + '<td class="amount">$' + fmtMoney(inv.amount) + '</td>'
+          + '<td>' + paymentMethodTag(inv.paymentMethod) + '</td>'
+          + '<td><span class="tag ' + ds + '">' + (ds === 'overdue' ? t('tagOverdue') : ds === 'soon' ? t('tagSoon') : t('tagNormal')) + '</span></td>'
+          + '<td>' + fmtDate(inv.suggestedPayDate) + '</td>'
+          + '</tr>';
+      });
+
+      html += '</tbody></table>';
+      html += '</div>'; // pivot-detail
+      html += '</div>'; // pivot-sub
+      sIdx++;
+    });
+
+    html += '</div>'; // pivot-body
+    html += '</div>'; // pivot-group
+    gIdx++;
+  });
+
+  // Grand total
+  html += '<div class="pivot-grand-total">'
+    + '<span>' + t('grandTotal') + ' (' + checked.length + ' ' + t('invoices') + ')</span>'
+    + '<strong>$' + fmtMoney(total) + '</strong>'
+    + '</div>';
+
+  document.getElementById('modalBody').innerHTML = html;
+}
+
+function changeGroupMode(mode) {
+  reviewGroupMode = mode;
+  renderPivotReview();
+}
+
+function togglePivot(header) {
+  header.classList.toggle('open');
+  const body = document.getElementById(header.dataset.gid);
+  if (body) body.style.display = header.classList.contains('open') ? '' : 'none';
+}
+
+function toggleAllPivots(expand) {
+  document.querySelectorAll('.pivot-header, .pivot-sub-header').forEach(h => {
+    if (expand) h.classList.add('open'); else h.classList.remove('open');
+    const body = document.getElementById(h.dataset.gid);
+    if (body) body.style.display = expand ? '' : 'none';
+  });
+}
+
+function closeModal() {
+  document.getElementById('summaryModal').classList.remove('active');
+  document.getElementById('modalPayBtn').style.display = 'none';
+}
+
+// ---- Approval Execution ----
+function confirmAndApprove() {
+  const checked = pendingBills.filter(b => b.checked);
+  if (checked.length === 0) return;
+
+  const total = checked.reduce((s, b) => s + b.amount, 0);
+  const msg = t('appConfirmMsg').replace('{0}', checked.length).replace('{1}', fmtMoney(total)).replace('{2}', escHtml(sessionUser.name));
+
+  const prevBody = document.getElementById('modalBody').innerHTML;
+  document.getElementById('modalTitle').textContent = t('appConfirmTitle');
+  document.getElementById('modalBody').innerHTML =
+    '<div class="pay-confirm-box">'
+    + '<p>' + msg + '</p>'
+    + '<div class="pay-actions">'
+    + '<button class="btn btn-secondary" onclick="cancelApprove()">' + t('modalClose') + '</button>'
+    + '<button class="btn btn-primary" id="btnExecApp" onclick="executeApprovals()">&#9989; ' + t('btnConfirmApp') + '</button>'
+    + '</div>'
+    + '</div>';
+  document.getElementById('modalPayBtn').style.display = 'none';
+  document.getElementById('modalExportBtn').style.display = 'none';
+  document.getElementById('modalBody').dataset.prevBody = prevBody;
+}
+
+function cancelApprove() {
+  const prev = document.getElementById('modalBody').dataset.prevBody;
+  if (prev) {
+    document.getElementById('modalBody').innerHTML = prev;
+    document.getElementById('modalTitle').textContent = t('modalAppTitle');
+    document.getElementById('modalPayBtn').style.display = '';
+    document.getElementById('modalExportBtn').style.display = '';
+  }
+}
+
+async function executeApprovals() {
+  const checked = pendingBills.filter(b => b.checked);
+  if (checked.length === 0) return;
+
+  const execBtn = document.getElementById('btnExecApp');
+  if (execBtn) { execBtn.disabled = true; execBtn.textContent = t('appProcessing') + '...'; }
+
+  // Group bills by orgId to reuse sessions
+  const orgBills = {};
+  checked.forEach(b => {
+    if (!orgBills[b.orgId]) orgBills[b.orgId] = [];
+    orgBills[b.orgId].push(b);
+  });
+
+  const results = [];
+  let processed = 0;
+  const totalCount = checked.length;
+
+  for (const orgId of Object.keys(orgBills)) {
+    let sid;
+    try {
+      const loginData = await doLoginOrg(sessionUser.email, sessionUser.password, orgId);
+      sid = loginData.sessionId;
+    } catch (e) {
+      orgBills[orgId].forEach(b => {
+        results.push({ success: false, store: b.store, invoice: b.invoiceNumber, error: 'Login: ' + e.message });
+      });
+      continue;
+    }
+
+    for (const bill of orgBills[orgId]) {
+      processed++;
+      if (execBtn) execBtn.textContent = t('appProcessingBill').replace('{0}', processed).replace('{1}', totalCount);
+
+      try {
+        await doApproveBill(sid, bill.billId);
+        results.push({ success: true, store: bill.store, invoice: bill.invoiceNumber });
+      } catch (e) {
+        results.push({ success: false, store: bill.store, invoice: bill.invoiceNumber, error: e.message });
+      }
+    }
+  }
+
+  showApprovalResults(results);
+}
+
+function showApprovalResults(results) {
+  document.getElementById('modalTitle').textContent = t('appResultTitle');
+
+  const successCount = results.filter(r => r.success).length;
+  const errorCount = results.filter(r => !r.success).length;
+
+  let html = '';
+  if (successCount > 0 && errorCount === 0) {
+    html += '<div class="pay-result ok" style="margin-bottom:16px;font-size:15px;font-weight:600;text-align:center">' + t('appSuccess') + '</div>';
+  }
+
+  results.forEach(r => {
+    if (r.success) {
+      html += '<div class="pay-result ok">' + t('appResultOk').replace('{0}', escHtml(r.store)).replace('{1}', escHtml(r.invoice)) + '</div>';
+    } else {
+      html += '<div class="pay-result err">' + t('appResultErr').replace('{0}', escHtml(r.store)).replace('{1}', escHtml(r.invoice)).replace('{2}', escHtml(r.error)) + '</div>';
+    }
+  });
+
+  html += '<div style="text-align:center;margin-top:20px">'
+    + '<button class="btn btn-primary" onclick="closeModal();loadAllData();">' + t('payDone') + '</button>'
+    + '</div>';
+
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalPayBtn').style.display = 'none';
+  document.getElementById('modalExportBtn').style.display = 'none';
+}
+
+// ---- Payment Execution ----
+function confirmAndPay() {
+  const checked = approvedBills.filter(b => b.checked);
+  if (checked.length === 0) return;
+
+  const total = checked.reduce((s, b) => s + b.amount, 0);
+  const msg = t('payConfirmMsg').replace('{0}', checked.length).replace('{1}', fmtMoney(total));
+
+  // Build summary table grouped by vendor with payment method
+  const vendorSummary = {};
+  checked.forEach(b => {
+    const key = b.vendor;
+    if (!vendorSummary[key]) vendorSummary[key] = { vendor: b.vendor, method: b.paymentMethod, count: 0, total: 0, date: b.suggestedPayDate };
+    vendorSummary[key].count++;
+    vendorSummary[key].total += b.amount;
+  });
+
+  let tableHtml = '<table style="width:100%;font-size:12px;margin:12px 0"><thead><tr>'
+    + '<th style="background:var(--ck-dark-mid);color:var(--ck-white);padding:6px 8px;text-align:left">' + t('thVendor') + '</th>'
+    + '<th style="background:var(--ck-dark-mid);color:var(--ck-white);padding:6px 8px;text-align:left">' + t('thPayMethod') + '</th>'
+    + '<th style="background:var(--ck-dark-mid);color:var(--ck-white);padding:6px 8px;text-align:center">#</th>'
+    + '<th style="background:var(--ck-dark-mid);color:var(--ck-white);padding:6px 8px;text-align:right">' + t('thAmount') + '</th>'
+    + '<th style="background:var(--ck-dark-mid);color:var(--ck-white);padding:6px 8px;text-align:left">' + t('thSugDate') + '</th>'
+    + '</tr></thead><tbody>';
+  Object.values(vendorSummary).sort((a, b) => a.vendor.localeCompare(b.vendor)).forEach(v => {
+    tableHtml += '<tr><td style="padding:5px 8px">' + escHtml(v.vendor) + '</td>'
+      + '<td style="padding:5px 8px">' + paymentMethodTag(v.method) + '</td>'
+      + '<td style="padding:5px 8px;text-align:center">' + v.count + '</td>'
+      + '<td style="padding:5px 8px;text-align:right;font-weight:600">$' + fmtMoney(v.total) + '</td>'
+      + '<td style="padding:5px 8px">' + fmtDate(v.date) + '</td></tr>';
+  });
+  tableHtml += '</tbody></table>';
+
+  const prevBody = document.getElementById('modalBody').innerHTML;
+  document.getElementById('modalTitle').textContent = t('payConfirmTitle');
+  document.getElementById('modalBody').innerHTML =
+    '<div class="pay-confirm-box">'
+    + '<p>' + msg + '</p>'
+    + tableHtml
+    + '<div class="pay-actions" style="margin-top:14px">'
+    + '<button class="btn btn-secondary" onclick="cancelPay()">' + t('modalClose') + '</button>'
+    + '<button class="btn btn-blue" id="btnExecPay" onclick="executePayments()">&#128176; ' + t('btnConfirmPay') + '</button>'
+    + '</div>'
+    + '</div>';
+  document.getElementById('modalPayBtn').style.display = 'none';
+  document.getElementById('modalExportBtn').style.display = 'none';
+  document.getElementById('modalBody').dataset.prevBody = prevBody;
+}
+
+function cancelPay() {
+  const prev = document.getElementById('modalBody').dataset.prevBody;
+  if (prev) {
+    document.getElementById('modalBody').innerHTML = prev;
+    document.getElementById('modalTitle').textContent = t('reviewTitle');
+    document.getElementById('modalPayBtn').style.display = '';
+    document.getElementById('modalExportBtn').style.display = '';
+  }
+}
+
+async function executePayments() {
+  const checked = approvedBills.filter(b => b.checked);
+  if (checked.length === 0) return;
+
+  // Disable button
+  const execBtn = document.getElementById('btnExecPay');
+  if (execBtn) { execBtn.disabled = true; execBtn.textContent = t('payProcessing') + '...'; }
+
+  // Group bills by orgId + processDate
+  const groups = {};
+  checked.forEach(b => {
+    const pDate = b.suggestedPayDate || '';
+    const key = b.orgId + '|' + pDate;
+    if (!groups[key]) groups[key] = { orgId: b.orgId, store: b.store, processDate: pDate, bills: [] };
+    groups[key].bills.push(b);
+  });
+
+  const groupList = Object.values(groups);
+  const results = [];
+  let idx = 0;
+
+  for (const group of groupList) {
+    idx++;
+    if (execBtn) execBtn.textContent = t('payProcessingStore').replace('{0}', idx).replace('{1}', groupList.length);
+
+    try {
+      // Login to org with user's credentials
+      const loginData = await doLoginOrg(sessionUser.email, sessionUser.password, group.orgId);
+      const sid = loginData.sessionId;
+
+      // Build PayBills payload
+      const payData = {
+        billPays: group.bills.map(b => ({ billId: b.billId, amount: b.amount }))
+      };
+      if (group.processDate) payData.processDate = group.processDate;
+
+      const result = await doPayBills(sid, payData);
+      const sentCount = (result && result.sentPays) ? result.sentPays.length : group.bills.length;
+      results.push({ success: true, store: group.store, count: sentCount, date: group.processDate });
+    } catch (e) {
+      results.push({ success: false, store: group.store, count: group.bills.length, error: e.message });
+    }
+  }
+
+  showPaymentResults(results);
+}
+
+function showPaymentResults(results) {
+  document.getElementById('modalTitle').textContent = t('payResultTitle');
+
+  const successCount = results.filter(r => r.success).length;
+  const errorCount = results.filter(r => !r.success).length;
+
+  let html = '';
+  if (successCount > 0 && errorCount === 0) {
+    html += '<div class="pay-result ok" style="margin-bottom:16px;font-size:15px;font-weight:600;text-align:center">' + t('paySuccess') + '</div>';
+  }
+
+  results.forEach(r => {
+    if (r.success) {
+      html += '<div class="pay-result ok">' + t('payResultOk').replace('{0}', escHtml(r.store)).replace('{1}', r.count) + (r.date ? ' (' + fmtDate(r.date) + ')' : '') + '</div>';
+    } else {
+      html += '<div class="pay-result err">' + t('payResultErr').replace('{0}', escHtml(r.store)).replace('{1}', escHtml(r.error)) + '</div>';
+    }
+  });
+
+  html += '<div style="text-align:center;margin-top:20px">'
+    + '<button class="btn btn-primary" onclick="closeModal();loadAllData();">' + t('payDone') + '</button>'
+    + '</div>';
+
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalPayBtn').style.display = 'none';
+  document.getElementById('modalExportBtn').style.display = 'none';
+}
+
+// ---- Excel Export ----
+function exportExcel(onlyChecked) {
+  const source = onlyChecked ? getActiveBills().filter(b => b.checked) : filteredBills;
+  if (source.length === 0) { alert(t('alertNoData')); return; }
+
+  const isApproval = currentModule === 'approval';
+  const rows = source.map(inv => {
+    const ds = dueDateStatus(inv.dueDate);
+    const row = {};
+    row[t('xlStore')] = inv.store;
+    row[t('xlVendor')] = inv.vendor;
+    row[t('xlInvNum')] = inv.invoiceNumber;
+    row[t('xlInvDate')] = inv.invoiceDate || '';
+    row[t('xlDueDate')] = inv.dueDate || '';
+    row[t('xlAmount')] = inv.amount;
+    row[t('xlDue')] = ds === 'overdue' ? t('tagOverdue') : ds === 'soon' ? t('tagSoon') : t('tagNormal');
+    row[t('xlPaySt')] = translatePaymentStatus(inv.paymentStatus);
+    row[t('xlAppSt')] = translateApprovalStatus(inv.approvalStatus);
+    if (!isApproval) row[t('xlPayMethod')] = translatePaymentMethod(inv.paymentMethod);
+    row[t('xlSugDate')] = inv.suggestedPayDate || '';
+    row[t('xlSelected')] = inv.checked ? t('xlYes') : t('xlNo');
+    return row;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const baseCols = [{ wch: 28 }, { wch: 30 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 20 }];
+  if (!isApproval) baseCols.push({ wch: 22 });
+  baseCols.push({ wch: 16 }, { wch: 10 });
+  ws['!cols'] = baseCols;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, isApproval ? t('xlSheet') : t('xlSheetPay'));
+
+  const d = new Date().toISOString().slice(0, 10);
+  const prefix = isApproval ? 'CK_Aprobaciones_' : 'CK_Pagos_';
+  XLSX.writeFile(wb, prefix + d + '.xlsx');
+  if (onlyChecked) closeModal();
+}
+
+// ---- Screen / UI helpers ----
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showLoading(show, title) {
+  document.getElementById('loadingOverlay').classList.toggle('active', show);
+  if (title) document.getElementById('loadingTitle').textContent = title;
+}
+
+function setLoadingMsg(msg, pct) {
+  document.getElementById('loadingMessage').textContent = msg;
+  if (pct !== undefined) document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('active');
+  setTimeout(() => el.classList.remove('active'), 12000);
+}
+
+// ---- Util ----
+function escHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function escAttr(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtMoney(n) { return (n||0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function formatDateISO(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function fmtDate(s) { if (!s) return '—'; const p = s.split('-'); return p.length === 3 ? p[1]+'/'+p[2]+'/'+p[0] : s; }
+
+function dueDateStatus(dueDate) {
+  if (!dueDate) return 'normal';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(dueDate + 'T00:00:00');
+  const diff = (due - today) / 864e5;
+  if (diff < 0) return 'overdue';
+  if (diff <= 7) return 'soon';
+  return 'normal';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
